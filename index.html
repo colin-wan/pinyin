@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>汉语拼音大冒险·统编人教版一年级上册同步学习乐园</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              200: '#fde68a',
+              300: '#fcd34d',
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+              700: '#b45309',
+              800: '#92400e',
+              900: '#78350f',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- 定制样式 -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gradient-to-br from-amber-50 via-sky-50 to-emerald-50 min-h-screen text-neutral-800 flex flex-col antialiased">
+
+  <!-- ==========================================
+       顶部状态与工具栏 (iPad 友好设计)
+       ========================================== -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b-2 border-amber-200 shadow-sm px-4 py-3 select-none">
+    <div class="max-w-5xl mx-auto flex items-center justify-between">
+      <!-- 网站品牌与徽标 -->
+      <div class="flex items-center space-x-2.5 cursor-pointer" onclick="window.app && window.app.showView('view-map')">
+        <div class="w-11 h-11 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-white text-2xl shadow-md border-2 border-white">
+          ✨
+        </div>
+        <div>
+          <h1 class="text-xl font-black text-amber-950 tracking-tight leading-tight">拼音大冒险</h1>
+          <p class="text-[11px] font-bold text-amber-600">人教版一年级上册同步</p>
+        </div>
+      </div>
+
+      <!-- 孩子学习激励数据 -->
+      <div class="flex items-center space-x-2 sm:space-x-4">
+        <!-- 连续打卡天数 -->
+        <div class="flex items-center space-x-1 bg-orange-100/90 text-orange-800 px-3 py-1.5 rounded-full font-bold text-xs shadow-inner">
+          <span>🔥 打卡</span>
+          <span id="top-bar-streak" class="text-sm font-extrabold text-orange-950">1</span>
+          <span>天</span>
+        </div>
+
+        <!-- 金星总数 -->
+        <div class="flex items-center space-x-1.5 bg-amber-100/90 text-amber-900 px-3.5 py-1.5 rounded-full font-black text-xs shadow-inner">
+          <span class="text-base">⭐</span>
+          <span id="top-bar-stars" class="text-base font-extrabold text-amber-600 transition-transform">0</span>
+        </div>
+
+        <!-- 发音试听与核验入口 -->
+        <a href="preview_audio.html" target="_blank" class="flex items-center space-x-1.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-extrabold text-xs px-3.5 py-2 rounded-2xl shadow transition no-underline">
+          <span class="text-sm">🎙️</span>
+          <span class="hidden sm:inline">发音试听核验</span>
+          <span class="sm:hidden">发音</span>
+        </a>
+
+        <!-- 家长小助手入口 -->
+        <button id="btn-open-parent" class="flex items-center space-x-1.5 bg-sky-500 hover:bg-sky-600 active:scale-95 text-white font-extrabold text-xs px-3.5 py-2 rounded-2xl shadow transition">
+          <span class="text-sm">👨‍👩‍👧</span>
+          <span class="hidden sm:inline">家长小助手</span>
+          <span class="sm:hidden">学情</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================
+       iPad 屏幕时间激励目标看板 (15分钟 + 90%正确率)
+       ========================================== -->
+  <aside class="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-white px-4 py-2.5 shadow-md select-none border-b-2 border-amber-600">
+    <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <!-- 学习时间与正确率双指标 -->
+      <div class="flex items-center space-x-4 sm:space-x-6 text-xs sm:text-sm font-black">
+        <!-- 学习时间指标 -->
+        <div class="flex items-center space-x-2">
+          <span class="text-base">⏱️</span>
+          <div class="flex flex-col">
+            <div class="flex items-center space-x-1.5">
+              <span class="opacity-90">本轮学习:</span>
+              <span id="lock-study-time" class="font-mono text-yellow-200 text-sm">00:00 / 15:00</span>
+            </div>
+            <div class="w-24 sm:w-28 bg-black/20 h-1.5 rounded-full overflow-hidden mt-0.5">
+              <div id="lock-study-bar" class="bg-amber-400 h-full w-0 transition-all duration-300"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 答题正确率指标 -->
+        <div class="flex items-center space-x-2">
+          <span class="text-base">🎯</span>
+          <div class="flex flex-col">
+            <div class="flex items-center space-x-1.5">
+              <span class="opacity-90">答题正确率:</span>
+              <span id="lock-accuracy-val" class="font-mono text-yellow-200 text-sm">0% (0题)</span>
+            </div>
+            <div class="w-24 sm:w-28 bg-black/20 h-1.5 rounded-full overflow-hidden mt-0.5">
+              <div id="lock-accuracy-bar" class="bg-amber-400 h-full w-0 transition-all duration-300"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 奖励正确率门槛快捷调节器 (需密码解锁) -->
+        <div class="flex items-center space-x-1.5 bg-black/20 hover:bg-black/30 px-3 py-1 rounded-2xl border border-white/20 transition cursor-pointer" title="调整奖励解锁门槛（需输入4位家长密码）">
+          <span class="text-xs opacity-90 font-bold whitespace-nowrap">🔒 奖励门槛:</span>
+          <select id="top-target-accuracy-select" class="bg-amber-100 hover:bg-white text-amber-950 text-xs font-black rounded-xl px-2 py-0.5 border border-amber-300 shadow-sm cursor-pointer transition">
+            <option value="60">60%</option>
+            <option value="70">70%</option>
+            <option value="80">80%</option>
+            <option value="85">85%</option>
+            <option value="90" selected>90%</option>
+            <option value="95">95%</option>
+            <option value="100">100%</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 奖励领取与发音超强增强 -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <!-- 领取15分钟奖励按钮 -->
+        <button id="btn-claim-reward" class="px-4 py-1.5 rounded-full text-xs font-black transition-all shadow active:scale-95 opacity-70 bg-amber-100 text-amber-900 border border-white/60">
+          <span>🔒 奖15分钟 (需学满15分/正确率90%)</span>
+        </button>
+
+        <!-- 声音音量增强状态按钮 -->
+        <button id="btn-toggle-volume-boost" class="bg-black/20 hover:bg-black/30 active:scale-95 text-white text-xs px-2.5 py-1.5 rounded-xl font-bold flex items-center space-x-1 border border-white/20" title="点击切换超大音量增强">
+          <span id="volume-boost-icon">🔊</span>
+          <span id="volume-boost-text" class="hidden sm:inline">超大音量: 开</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==========================================
+       主功能导航条 (地图 / 拼读 / 汉字 / 游戏 / 拼音表)
+       ========================================== -->
+  <nav class="bg-amber-100/70 border-b border-amber-200 px-4 py-2 select-none">
+    <div class="max-w-4xl mx-auto flex items-center justify-around gap-2 overflow-x-auto scrollbar-none">
+      <button class="nav-btn flex items-center space-x-2 px-3.5 py-2 rounded-2xl font-black text-sm transition bg-amber-400 text-amber-950 shadow-md shrink-0" data-view="view-map">
+        <span>🗺️</span>
+        <span>通关地图</span>
+      </button>
+
+      <button class="nav-btn flex items-center space-x-2 px-3.5 py-2 rounded-2xl font-black text-sm text-neutral-600 hover:bg-amber-200/60 transition shrink-0" data-view="view-lab">
+        <span>🚂</span>
+        <span>拼读实验室</span>
+      </button>
+
+      <button class="nav-btn flex items-center space-x-2 px-3.5 py-2 rounded-2xl font-black text-sm text-neutral-600 hover:bg-amber-200/60 transition shrink-0" data-view="view-hanzi">
+        <span>🀄</span>
+        <span>汉字拼音乐园</span>
+      </button>
+
+      <button class="nav-btn flex items-center space-x-2 px-3.5 py-2 rounded-2xl font-black text-sm text-neutral-600 hover:bg-amber-200/60 transition shrink-0" data-view="view-games">
+        <span>🎡</span>
+        <span>趣味乐园</span>
+      </button>
+
+      <button class="nav-btn flex items-center space-x-2 px-3.5 py-2 rounded-2xl font-black text-sm text-neutral-600 hover:bg-amber-200/60 transition shrink-0" data-view="view-chart">
+        <span>📖</span>
+        <span>拼音总表</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ==========================================
+       主要视图展示区域
+       ========================================== -->
+  <main class="flex-1 max-w-5xl w-full mx-auto p-4 select-none">
+
+    <!-- 视图 1：通关打卡大地图 (按部就班模式) -->
+    <section id="view-map" class="main-view">
+      <!-- 欢迎横幅 -->
+      <div class="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-300 rounded-3xl p-6 shadow-lg text-white mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-4 border-white">
+        <div>
+          <span class="bg-black/20 text-xs px-3 py-1 rounded-full font-bold tracking-wide">小学一年级·起点闯关</span>
+          <h2 class="text-2xl sm:text-3xl font-black mt-2">一年级拼音通关大冒险！</h2>
+          <p class="text-xs sm:text-sm font-medium opacity-90 mt-1">从第 1 课 a o e 开始，一步一个脚印，解锁所有拼音徽章！</p>
+        </div>
+        <div class="text-5xl animate-bounce">
+          🎒
+        </div>
+      </div>
+
+      <!-- 课时节点列表 -->
+      <div id="map-lessons-container" class="w-full"></div>
+    </section>
+
+    <!-- 视图 2：同步课堂 (单课学习与测试) -->
+    <section id="view-lesson" class="main-view hidden">
+      <div id="lesson-content-area" class="w-full"></div>
+    </section>
+
+    <!-- 视图 3：拼读实验室 (专门攻坚拼读连不起来) -->
+    <section id="view-lab" class="main-view hidden">
+      <div class="max-w-3xl mx-auto space-y-4">
+        <!-- 引导小卡片 -->
+        <div class="bg-amber-100/90 border-2 border-amber-300 p-4 rounded-2xl shadow-sm flex items-center space-x-3">
+          <span class="text-3xl">💡</span>
+          <div class="text-xs text-amber-900 leading-relaxed">
+            <strong>专门解决“拼读连不起来”难题：</strong>
+            小朋友，拼读就像两列小火车慢慢开向对方，前音（声母）读得轻而短，后音（韵母）读得重又响，两音相碰猛一碰，就能把音节拼出来啦！
+          </div>
+        </div>
+
+        <div id="lab-game-container"></div>
+      </div>
+    </section>
+
+    <!-- 视图：汉字拼音乐园 (人教版一年级生字全集) -->
+    <section id="view-hanzi" class="main-view hidden">
+      <div id="hanzi-game-container"></div>
+    </section>
+
+    <!-- 视图 4：趣味乐园 (4个儿童互动游戏) -->
+    <section id="view-games" class="main-view hidden">
+      <div class="max-w-4xl mx-auto">
+        <div id="games-content-area"></div>
+      </div>
+    </section>
+
+    <!-- 视图 5：拼音全表速查 (声母、韵母、整体认读) -->
+    <section id="view-chart" class="main-view hidden">
+      <div class="max-w-4xl mx-auto">
+        <div id="chart-content-area"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==========================================
+       页脚信息
+       ========================================== -->
+  <footer class="mt-auto py-4 text-center text-xs text-neutral-400 select-none border-t border-amber-200/60 bg-white/40">
+    <p>统编人教版小学一年级上册语文·汉语拼音同步互动系统</p>
+    <p class="text-[10px] text-neutral-400 mt-1">专为 6-7 岁一年级新生与 iPad 触控教学精心设计</p>
+  </footer>
+
+  <!-- ==========================================
+       弹窗 1：家长小助手 (学情看板、快捷指令教程、密码设置)
+       ========================================== -->
+  <div id="modal-parent" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 hidden animate-fadeIn">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border-4 border-sky-300 max-h-[90vh] overflow-y-auto">
+      <!-- 弹窗顶栏 -->
+      <div class="flex items-center justify-between pb-3 border-b border-neutral-100 mb-4">
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl">👨‍👩‍👧</span>
+          <div>
+            <h3 class="font-extrabold text-neutral-800 text-lg">家长小助手·辅导与屏幕管控中心</h3>
+            <p class="text-[11px] text-neutral-500">科学辅导拼音 · 15分钟学习激励与 iPad 屏幕时间联动</p>
+          </div>
+        </div>
+        <button id="btn-close-parent" class="w-9 h-9 bg-neutral-100 hover:bg-neutral-200 text-neutral-600 rounded-full font-bold text-xl flex items-center justify-center transition">
+          ✕
+        </button>
+      </div>
+
+      <!-- 选项卡切换 -->
+      <div class="flex items-center space-x-2 border-b border-neutral-200 pb-2 mb-4 overflow-x-auto">
+        <button class="parent-tab-btn px-3 py-1.5 rounded-xl font-bold text-xs bg-sky-500 text-white shadow-sm" data-tab="stats">
+          📊 学情看板
+        </button>
+        <button class="parent-tab-btn px-3 py-1.5 rounded-xl font-bold text-xs bg-neutral-100 text-neutral-600 hover:bg-neutral-200" data-tab="shortcuts">
+          🛡️ iPad快捷指令联动教程
+        </button>
+        <button class="parent-tab-btn px-3 py-1.5 rounded-xl font-bold text-xs bg-neutral-100 text-neutral-600 hover:bg-neutral-200" data-tab="settings">
+          ⚙️ 密码与声音设置
+        </button>
+      </div>
+
+      <!-- Tab 1: 学情看板与错题本 -->
+      <div id="parent-tab-content-stats" class="parent-tab-page space-y-4">
+        <!-- 孩子学情三项关键指标 -->
+        <div class="grid grid-cols-3 gap-3 text-center">
+          <div class="bg-sky-50 p-3 rounded-2xl border border-sky-100">
+            <div class="text-[11px] text-sky-700 font-bold">今日累计学习</div>
+            <div class="text-xl font-black text-sky-900 mt-0.5" id="parent-stat-time">0 分钟</div>
+          </div>
+          <div class="bg-emerald-50 p-3 rounded-2xl border border-emerald-100">
+            <div class="text-[11px] text-emerald-700 font-bold">通关课时</div>
+            <div class="text-xl font-black text-emerald-900 mt-0.5" id="parent-stat-lessons">0 / 13 课</div>
+          </div>
+          <div class="bg-amber-50 p-3 rounded-2xl border border-amber-100">
+            <div class="text-[11px] text-amber-700 font-bold">打卡坚持</div>
+            <div class="text-xl font-black text-amber-900 mt-0.5" id="parent-stat-streak">1 天</div>
+          </div>
+        </div>
+
+        <!-- 核心屏幕时间激励控制卡片 (首页醒目展示，随时可调) -->
+        <div class="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-300 p-4 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-xl shadow">
+              🎯
+            </div>
+            <div>
+              <div class="text-sm font-black text-amber-950">iPad 奖励解锁正确率门槛</div>
+              <div class="text-[11px] text-amber-800 font-medium">学习满 15 分钟且正确率达到此门槛，立即解锁 15 分钟屏幕时间</div>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2 shrink-0">
+            <span class="text-xs font-bold text-neutral-600">🔒 门槛设置:</span>
+            <select id="parent-stat-accuracy-select" class="text-xs bg-white border-2 border-amber-400 text-amber-950 font-black rounded-xl px-3 py-1.5 shadow focus:outline-none cursor-pointer">
+              <option value="60">60% (鼓励模式)</option>
+              <option value="70">70% (基础达标)</option>
+              <option value="80">80% (良好达标)</option>
+              <option value="85">85% (进阶模式)</option>
+              <option value="90" selected>90% (标准推荐)</option>
+              <option value="95">95% (高要求模式)</option>
+              <option value="100">100% (满分挑战)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 易错加油站 (错题本) -->
+        <div>
+          <h4 class="text-xs font-black text-neutral-700 flex items-center space-x-1 mb-2">
+            <span>📝</span>
+            <span>易错加油站（孩子练习中的薄弱音节）</span>
+          </h4>
+          <div id="parent-mistakes-list" class="space-y-2 max-h-36 overflow-y-auto"></div>
+        </div>
+
+        <!-- 辅导锦囊 -->
+        <div class="bg-amber-50 border border-amber-200 p-4 rounded-2xl space-y-2">
+          <div class="flex items-center space-x-1.5 text-amber-900 font-extrabold text-xs">
+            <span>🎯</span>
+            <span>一年级攻克“拼读连不起来”辅导法</span>
+          </div>
+          <p class="text-xs text-amber-950/90 leading-relaxed">
+            孩子认得单个字母但拼不出来是正常生理阶段。牢记口诀：<strong>“声母轻短韵母重，两音相碰猛一碰”</strong>。配合网站中的<strong>“拼读实验室（小火车对撞）”</strong>每天练习5分钟即可建立拼读反射！
+          </p>
+        </div>
+      </div>
+
+      <!-- Tab 2: iPad 屏幕时间与快捷指令联动教程 -->
+      <div id="parent-tab-content-shortcuts" class="parent-tab-page hidden space-y-4">
+        <div class="bg-sky-50 border border-sky-200 p-4 rounded-2xl space-y-2">
+          <h4 class="text-sm font-black text-sky-950 flex items-center space-x-1.5">
+            <span>📱</span>
+            <span>如何通过 iPad 自带功能实现 15 分钟自动锁定与解锁？</span>
+          </h4>
+          <p class="text-xs text-sky-900 leading-relaxed">
+            iOS / iPadOS 系统的沙盒机制不允许网页直接修改系统屏幕时间密码，但您可以通过 <strong>Apple 自带的“专注模式”+“快捷指令”</strong> 完美实现<strong>自动隐藏/解锁娱乐 App 并在15分钟后自动上锁</strong>：
+          </p>
+        </div>
+
+        <!-- 步骤指南 -->
+        <div class="space-y-3 text-xs text-neutral-700">
+          <div class="bg-white p-3.5 rounded-2xl border border-neutral-200 shadow-sm space-y-1.5">
+            <span class="font-extrabold text-sky-700">步骤一：在 iPad 设置中新建【拼音学习专注模式】</span>
+            <p class="text-[11px] text-neutral-500 leading-relaxed">
+              打开 iPad「设置」→「专注模式」→ 点击右上角「+」新建模式，命名为<strong>“拼音学习”</strong>。在“允许的App”中<strong>仅添加 Safari 浏览器</strong>，屏蔽抖音、游戏、B站等娱乐 App。平时孩子使用 iPad 时保持该专注模式开启。
+            </p>
+          </div>
+
+          <div class="bg-white p-3.5 rounded-2xl border border-neutral-200 shadow-sm space-y-1.5">
+            <span class="font-extrabold text-sky-700">步骤二：在【快捷指令】App 新建自动化</span>
+            <p class="text-[11px] text-neutral-500 leading-relaxed">
+              打开 iPad 自带的「快捷指令」App，新建一条快捷指令，名称设为 <code>拼音奖励15分钟</code>：
+            </p>
+            <div class="bg-neutral-100 p-2.5 rounded-xl font-mono text-[11px] text-neutral-800 space-y-1">
+              <div>1. 设定「专注模式」：关闭“拼音学习”（此时所有 App 解除隐藏）</div>
+              <div>2. 启动计时器：设置 15 分钟</div>
+              <div>3. 等待 900 秒（或通过计时器结束自动化）：重新开启“拼音学习”专注模式！</div>
+            </div>
+          </div>
+
+          <div class="bg-white p-3.5 rounded-2xl border border-neutral-200 shadow-sm space-y-1.5">
+            <span class="font-extrabold text-sky-700">步骤三：网页达标后自动联动</span>
+            <p class="text-[11px] text-neutral-500 leading-relaxed">
+              孩子学满 15 分钟且正确率达到 90% 后，点击“领取15分钟奖励”，网页会自动通过 <code>shortcuts://run-shortcut?name=拼音奖励15分钟</code> 唤起执行！15 分钟到期后，网页全屏锁死，必须开始新一轮学习或输入密码！
+            </p>
+          </div>
+        </div>
+
+        <!-- 快捷指令名称自定义 -->
+        <div class="bg-neutral-50 p-3.5 rounded-2xl border border-neutral-200 space-y-2">
+          <label class="text-xs font-bold text-neutral-700 block">快捷指令联动名称（需与iPad快捷指令名称一致）：</label>
+          <div class="flex items-center space-x-2">
+            <input type="text" id="parent-shortcut-name" class="flex-1 text-xs border border-neutral-300 rounded-xl px-3 py-2 font-bold bg-white" value="拼音奖励15分钟">
+            <button id="btn-test-shortcut" class="bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs px-3.5 py-2 rounded-xl transition">
+              测试唤起
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: 密码与声音设置 -->
+      <div id="parent-tab-content-settings" class="parent-tab-page hidden space-y-4">
+        <!-- 4位管理密码修改 -->
+        <div class="bg-neutral-50 p-4 rounded-2xl border border-neutral-200 space-y-2">
+          <h4 class="text-xs font-black text-neutral-700">🔑 家长 4 位解锁密码（默认 1234）</h4>
+          <p class="text-[11px] text-neutral-500">当 15 分钟奖励时间用尽锁定后，您可以输入此密码手动接触屏幕限制：</p>
+          <div class="flex items-center space-x-3 pt-1">
+            <input type="password" maxlength="4" id="parent-pin-input" class="w-32 text-center text-lg font-mono tracking-widest border border-neutral-300 rounded-xl px-3 py-1.5 bg-white font-black" value="1234">
+            <button id="btn-save-parent-pin" class="bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition">
+              保存密码
+            </button>
+          </div>
+        </div>
+
+        <!-- 发音音量与清晰度增强设置 -->
+        <div class="bg-neutral-50 p-4 rounded-2xl border border-neutral-200 space-y-3">
+          <h4 class="text-xs font-black text-neutral-700">🔊 发音音量与朗读速度</h4>
+          
+          <div class="flex items-center justify-between">
+            <label class="text-xs text-neutral-600 font-bold">硬件超大音量增强 (Boost 1.8x)：</label>
+            <input type="checkbox" id="parent-boost-toggle" class="w-5 h-5 rounded text-sky-600 cursor-pointer" checked>
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-neutral-200/60">
+            <label class="text-xs text-neutral-600 font-bold">默认朗读语速：</label>
+            <select id="parent-speech-speed" class="text-xs bg-white border border-neutral-300 rounded-xl px-3 py-1 font-bold">
+              <option value="normal" selected>正常语速 (清晰自然)</option>
+              <option value="slow">慢速拼读 (逐字清晰)</option>
+            </select>
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-neutral-200/60">
+            <div>
+              <label class="text-xs text-neutral-600 font-bold block">核心发音源（人教版同步）：</label>
+              <span id="parent-voice-name" class="text-[10px] text-emerald-600 font-bold">人教版教学标准真人母带 (高保真 MP3)</span>
+            </div>
+            <div class="flex items-center space-x-1.5">
+              <a href="preview_audio.html" target="_blank" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-xs px-3 py-1.5 rounded-xl font-bold transition flex items-center space-x-1 no-underline active:scale-95">
+                <span>🎙️</span>
+                <span>试听核验中心</span>
+              </a>
+              <button id="btn-test-voice" type="button" class="bg-sky-100 hover:bg-sky-200 text-sky-800 text-xs px-3 py-1.5 rounded-xl font-bold transition flex items-center space-x-1 active:scale-95">
+                <span>🔊</span>
+                <span>试听真人原声</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-neutral-200/60">
+            <div>
+              <label class="text-xs text-neutral-600 font-bold block">🔒 奖励解锁正确率门槛：</label>
+              <span class="text-[10px] text-neutral-400">完成学习并达到此正确率才可自动奖励屏幕时间（需输入家长密码）</span>
+            </div>
+            <select id="parent-target-accuracy" class="text-xs bg-white border border-sky-300 text-sky-900 rounded-xl px-3 py-1 font-bold shadow-sm">
+              <option value="60">60% (鼓励模式)</option>
+              <option value="70">70% (基础达标)</option>
+              <option value="80">80% (良好达标)</option>
+              <option value="85">85% (进阶模式)</option>
+              <option value="90" selected>90% (标准推荐)</option>
+              <option value="95">95% (高要求模式)</option>
+              <option value="100">100% (满分挑战)</option>
+            </select>
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-neutral-200/60">
+            <div>
+              <label class="text-xs text-neutral-600 font-bold block">解锁所有拼音关卡：</label>
+              <span class="text-[10px] text-neutral-400">方便家长带孩子预习后方课程</span>
+            </div>
+            <input type="checkbox" id="parent-unlock-toggle" class="w-5 h-5 rounded text-sky-600 cursor-pointer">
+          </div>
+        </div>
+
+        <!-- 重置进度操作 -->
+        <div class="pt-2 flex items-center justify-between">
+          <button id="parent-reset-progress" class="text-xs text-rose-500 hover:text-rose-700 font-bold px-3 py-2 rounded-xl transition">
+            重置进度从第1课开始
+          </button>
+        </div>
+      </div>
+
+      <!-- 底部关闭按钮 -->
+      <div class="pt-4 mt-4 border-t border-neutral-100 flex justify-end">
+        <button id="parent-save-settings" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white font-extrabold text-sm px-6 py-2.5 rounded-2xl shadow transition">
+          完成并返回
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       弹窗 2：15 分钟奖励达标解锁庆祝弹窗
+       ========================================== -->
+  <div id="modal-reward-ready" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 hidden animate-fadeIn">
+    <div class="bg-gradient-to-b from-white via-amber-50 to-orange-50 rounded-3xl max-w-md w-full p-7 shadow-2xl border-4 border-amber-400 text-center space-y-5">
+      <div class="text-7xl animate-bounce">🎁 🏆 ⭐</div>
+      <div>
+        <span class="bg-amber-400 text-amber-950 font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider">达标奖励已解锁</span>
+        <h3 class="text-2xl sm:text-3xl font-black text-amber-950 mt-2">太棒啦！15分钟奖励已到手！</h3>
+        <p class="text-xs sm:text-sm text-neutral-600 mt-2 leading-relaxed font-bold">
+          小勇士本轮学习已满 15 分钟，且答题正确率达到 90% 以上！现在可以尽情享受 15 分钟 iPad 屏幕使用奖励啦！
+        </p>
+      </div>
+
+      <div class="p-3 bg-amber-100/80 rounded-2xl text-xs text-amber-900 font-extrabold">
+        ⏱️ 提示：领取后将开始 15 分钟倒计时，时间一到会自动恢复锁定哦！
+      </div>
+
+      <div class="flex items-center justify-center space-x-3 pt-2">
+        <button id="btn-modal-claim-now" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-lg py-3.5 rounded-2xl shadow-xl transition active:scale-95">
+          🎉 立即领取 15 分钟屏幕时间！
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       弹窗 3：15 分钟奖励用尽·全屏锁定覆盖层 (Auto Re-Lock)
+       ========================================== -->
+  <div id="modal-screen-time-lock" class="fixed inset-0 z-50 bg-gradient-to-br from-neutral-900/95 via-sky-950/95 to-neutral-900/95 backdrop-blur-xl flex items-center justify-center p-4 hidden select-none animate-fadeIn">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border-4 border-rose-400 text-center space-y-6">
+      <div class="w-20 h-20 bg-rose-100 text-rose-600 rounded-3xl flex items-center justify-center text-4xl mx-auto shadow-inner animate-pulse">
+        🔒
+      </div>
+
+      <div>
+        <h3 class="text-2xl sm:text-3xl font-black text-neutral-800">15 分钟屏幕时间已到期！</h3>
+        <p class="text-xs sm:text-sm text-neutral-500 mt-2 leading-relaxed font-bold">
+          小勇士，奖励的 15 分钟 iPad 屏幕时间已经用完啦！让眼睛休息一下，站起来喝杯水吧！
+        </p>
+      </div>
+
+      <div class="bg-rose-50 border border-rose-200 p-3.5 rounded-2xl text-xs text-rose-900 font-extrabold leading-relaxed text-left space-y-1">
+        <div>💡 <strong>如何再次解锁？</strong></div>
+        <div class="text-[11px] text-rose-800 font-medium">
+          1. 开始新一轮 15 分钟拼音学习，达标 90% 正确率后将再次奖励 15 分钟！<br>
+          2. 或由爸爸妈妈输入家长管理密码解除限制。
+        </div>
+      </div>
+
+      <div class="space-y-3 pt-2">
+        <button id="btn-lock-start-new-session" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-base py-3.5 rounded-2xl shadow-lg transition active:scale-95 flex items-center justify-center space-x-2">
+          <span>🚀</span>
+          <span>开始新一轮 15 分钟拼音挑战</span>
+        </button>
+
+        <button id="btn-lock-parent-override" class="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-black text-xs py-2.5 rounded-2xl transition">
+          🔑 家长密码解除限制
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       弹窗 4：家长 4 位数字密码触控键盘
+       ========================================== -->
+  <div id="modal-parent-pin-keypad" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 hidden animate-fadeIn">
+    <div id="pin-keypad-box" class="bg-white rounded-3xl max-w-xs w-full p-6 shadow-2xl border-4 border-sky-300 text-center space-y-4">
+      <div class="flex items-center justify-between pb-2 border-b border-neutral-100">
+        <span class="text-sm font-black text-neutral-800 flex items-center space-x-1">
+          <span id="pin-modal-icon">🔑</span>
+          <span id="pin-modal-title">家长密码验证</span>
+        </span>
+        <button id="btn-close-pin-keypad" class="text-neutral-400 hover:text-neutral-600 text-lg font-bold">✕</button>
+      </div>
+
+      <p id="pin-modal-desc" class="text-xs text-neutral-500 font-medium">请输入 4 位家长密码（默认 1234）</p>
+
+      <!-- 4个数字圆点显示 -->
+      <div class="flex items-center justify-center space-x-4 py-2">
+        <div class="pin-digit-dot w-4 h-4 rounded-full bg-neutral-200 transition-all"></div>
+        <div class="pin-digit-dot w-4 h-4 rounded-full bg-neutral-200 transition-all"></div>
+        <div class="pin-digit-dot w-4 h-4 rounded-full bg-neutral-200 transition-all"></div>
+        <div class="pin-digit-dot w-4 h-4 rounded-full bg-neutral-200 transition-all"></div>
+      </div>
+
+      <!-- 数字小键盘 (专为 iPad 触控设计的大按键) -->
+      <div class="grid grid-cols-3 gap-2.5 max-w-[240px] mx-auto pt-2">
+        <button class="pin-num-btn w-16 h-14 bg-neutral-100 hover:bg-neutral-200 active:bg-sky-200 rounded-2xl font-black text-2xl text-neutral-800 transition active:scale-95 flex items-center justify-center shadow-sm" data-num="1">1</button>
+        <button class="pin-num-btn w-16 h-14 bg-neutral-100 hover:bg-neutral-200 active:bg-sky-200 rounded-2xl font-black text-2xl text-neutral-800 transition active:scale-95 flex items-center justify-center shadow-sm" data-num="2">2</button>
+        <button class="pin-num-btn w-16 h-14 bg-neutral-100 hover:bg-neutral-200 active:bg-sky-200 rounded-2xl font-black text-2xl text-neutral-800 transition active:scale-95 flex items-center justify-center shadow-sm" data-num="3">3</button>
+        <button class="pin-num-btn w-16 h-14 bg-neutral-100 hover:bg-neutral-200 active:bg-sky-200 rounded-2xl font-black text-2xl text-neutral-800 transition active:scale-95 flex items-center justify-center shadow-sm" data-num="4">4</button>
+        <button class="pin-num-btn w-16 h-14 bg-neutral-100 hover:bg-neutral-200 active:bg-sky-200 rounded-2xl font-black text-2xl text-neutral-800 transition active:scale-95 flex items-center justify-center shadow-sm" data-num="5">5</button>
+        <button class="pin-num-btn w-16 h-14 bg-neutral-100 hover:bg-neutral-200 active:bg-sky-200 rounded-2xl font-black text-2xl text-neutral-800 transition active:scale-95 flex items-center justify-center shadow-sm" data-num="6">6</button>
+        <button class="pin-num-btn w-16 h-14 bg-neutral-100 hover:bg-neutral-200 active:bg-sky-200 rounded-2xl font-black text-2xl text-neutral-800 transition active:scale-95 flex items-center justify-center shadow-sm" data-num="7">7</button>
+        <button class="pin-num-btn w-16 h-14 bg-neutral-100 hover:bg-neutral-200 active:bg-sky-200 rounded-2xl font-black text-2xl text-neutral-800 transition active:scale-95 flex items-center justify-center shadow-sm" data-num="8">8</button>
+        <button class="pin-num-btn w-16 h-14 bg-neutral-100 hover:bg-neutral-200 active:bg-sky-200 rounded-2xl font-black text-2xl text-neutral-800 transition active:scale-95 flex items-center justify-center shadow-sm" data-num="9">9</button>
+        <button id="btn-pin-clear" class="w-16 h-14 bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300 rounded-2xl font-bold text-xs text-neutral-500 transition active:scale-95 flex items-center justify-center">清空</button>
+        <button class="pin-num-btn w-16 h-14 bg-neutral-100 hover:bg-neutral-200 active:bg-sky-200 rounded-2xl font-black text-2xl text-neutral-800 transition active:scale-95 flex items-center justify-center shadow-sm" data-num="0">0</button>
+        <button id="btn-pin-del" class="w-16 h-14 bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300 rounded-2xl font-black text-lg text-neutral-600 transition active:scale-95 flex items-center justify-center">⌫</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       脚本加载链 (完整按序加载)
+       ========================================== -->
+  <script src="js/pinyin-data.js"></script>
+  <script src="js/textbook-hanzi-data.js"></script>
+  <script src="js/audio-engine.js"></script>
+  <script src="js/stroke-canvas.js"></script>
+  <script src="js/game-balloons.js"></script>
+  <script src="js/game-train.js"></script>
+  <script src="js/game-tones.js"></script>
+  <script src="js/game-diff.js"></script>
+  <script src="js/game-hanzi.js"></script>
+  <script src="js/screen-time-lock.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

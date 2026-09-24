@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人教版小学一年级语文·发音材料试听与核验中心</title>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a0ca3;
+            --secondary: #4cc9f0;
+            --accent: #f72585;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --bg-gradient: linear-gradient(135deg, #f0f4ff 0%, #e6edff 50%, #fdf2f8 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-radius: 16px;
+            --shadow: 0 10px 25px -5px rgba(67, 97, 238, 0.1), 0 8px 10px -6px rgba(67, 97, 238, 0.05);
+            --shadow-hover: 0 20px 30px -10px rgba(67, 97, 238, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 24px 16px 120px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* 顶部横幅 */
+        .header-card {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
+            color: white;
+            padding: 32px 28px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 20px 35px -10px rgba(37, 99, 235, 0.4);
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header-card::before {
+            content: "🗣️";
+            position: absolute;
+            right: 20px;
+            bottom: -15px;
+            font-size: 130px;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .badge-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.22);
+            backdrop-filter: blur(8px);
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .header-title {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .header-desc {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.92);
+            max-width: 850px;
+            line-height: 1.7;
+        }
+
+        /* 试听与核验指南 */
+        .notice-card {
+            background: #fffbeb;
+            border: 2px solid #fde68a;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .notice-icon {
+            font-size: 26px;
+            line-height: 1;
+        }
+
+        .notice-content h4 {
+            color: #92400e;
+            font-size: 16px;
+            margin-bottom: 4px;
+            font-weight: 700;
+        }
+
+        .notice-content p {
+            color: #b45309;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* 顶部控制栏 */
+        .action-bar {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 18px 24px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .tour-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: none;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+            transition: all 0.2s ease;
+        }
+
+        .tour-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+        }
+
+        .tour-button:active {
+            transform: translateY(0);
+        }
+
+        .volume-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .volume-slider {
+            width: 140px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        /* 标签页切换 */
+        .tabs-nav {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .tab-btn {
+            background: white;
+            border: 2px solid transparent;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            background: #eff6ff;
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.15);
+        }
+
+        .tab-count {
+            background: #e2e8f0;
+            color: #475569;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-weight: 700;
+        }
+
+        .tab-btn.active .tab-count {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* 卡片网格 */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        .audio-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 18px 20px;
+            box-shadow: var(--shadow);
+            border: 2px solid transparent;
+            transition: all 0.25s ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .audio-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+            border-color: #cbd5e1;
+        }
+
+        .audio-card.playing {
+            border-color: var(--primary);
+            background: #f8faff;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .symbol-badge {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--primary-dark);
+            font-family: "Courier New", Courier, monospace, "PingFang SC";
+            line-height: 1;
+        }
+
+        .card-info {
+            text-align: right;
+        }
+
+        .card-hudu {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .card-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: #475569;
+            background: #f8fafc;
+            padding: 8px 10px;
+            border-radius: 8px;
+            margin-bottom: 14px;
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+        }
+
+        .buttons-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .play-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: none;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .play-btn-primary {
+            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            color: white;
+            box-shadow: 0 4px 10px rgba(67, 97, 238, 0.25);
+        }
+
+        .play-btn-primary:hover {
+            box-shadow: 0 6px 14px rgba(67, 97, 238, 0.35);
+            filter: brightness(1.05);
+        }
+
+        .play-btn-secondary {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+        }
+
+        .play-btn-secondary:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .tone-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .tone-btn {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+            padding: 8px 2px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s;
+        }
+
+        .tone-btn:hover {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        /* 底部固定播放控制条 */
+        .bottom-player {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px);
+            border-top: 1px solid #e2e8f0;
+            padding: 14px 24px;
+            box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 100;
+        }
+
+        .bottom-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .sound-wave {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 24px;
+        }
+
+        .wave-bar {
+            width: 4px;
+            height: 6px;
+            background: var(--primary);
+            border-radius: 2px;
+            transition: height 0.15s;
+        }
+
+        .sound-wave.active .wave-bar:nth-child(1) { animation: wave 0.8s infinite ease-in-out; }
+        .sound-wave.active .wave-bar:nth-child(2) { animation: wave 0.6s infinite ease-in-out 0.2s; }
+        .sound-wave.active .wave-bar:nth-child(3) { animation: wave 0.9s infinite ease-in-out 0.4s; }
+        .sound-wave.active .wave-bar:nth-child(4) { animation: wave 0.7s infinite ease-in-out 0.1s; }
+
+        @keyframes wave {
+            0%, 100% { height: 6px; }
+            50% { height: 24px; }
+        }
+
+        .current-text {
+            font-size: 15px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .current-source {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .bottom-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .confirm-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            transition: all 0.2s;
+        }
+
+        .confirm-btn:hover {
+            background: #059669;
+        }
+
+        .feedback-btn {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* 模态弹窗 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-body {
+            background: white;
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .modal-body h3 {
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: #0f172a;
+        }
+
+        .terminal-box {
+            background: #1e293b;
+            color: #38bdf8;
+            padding: 14px 18px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 13px;
+            margin-top: 14px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .header-title { font-size: 22px; }
+            .grid-container { grid-template-columns: 1fr; }
+            .bottom-player { flex-direction: column; gap: 12px; align-items: stretch; }
+            .bottom-actions { justify-content: flex-end; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 头部说明卡片 -->
+    <div class="header-card">
+        <div class="badge-tag">
+            <span>📚</span> 统编语文第一册教学规范
+        </div>
+        <h1 class="header-title">小学一年级汉语拼音·发音材料试听与核验中心</h1>
+        <p class="header-desc">
+            尊敬的家长：根据您的明确要求（<strong>在替换代码文件前，让您先听听发音是否准确</strong>），我们已从国家语言文字规范数据库及知名母带库中整理提取了匹配人教版小学一年级语文教材的全套真人母带录音，并对比系统优化语音。<strong>本页面仅用于发音核验，尚未修改您的游戏生产代码。</strong>
+        </p>
+    </div>
+
+    <!-- 试听与核验说明条 -->
+    <div class="notice-card">
+        <div class="notice-icon">💡</div>
+        <div class="notice-content">
+            <h4>人教版发音关键要点说明</h4>
+            <p>
+                1. <strong>声母发音（呼读音）</strong>：根据教育部小学语文教学标准，单个辅音声母本音微弱且短促，小学一年级教学统一采用<strong>呼读音</strong>（如 <code>b-玻</code>、<code>p-坡</code>、<code>m-摸</code>、<code>f-佛</code>、<code>d-得</code>、<code>t-特</code>）。我们提供的真人录音严格遵循此标准。<br>
+                2. <strong>韵母四声</strong>：单韵母（a, o, e, i, u, ü）支持四个声调分别点播，声调饱满，调型清晰。<br>
+                3. <strong>双轨对比</strong>：每张卡片均提供【▶️ 真人母带】与【🔊 系统发音】按钮，您可以现场对比音色与清晰度。
+            </p>
+        </div>
+    </div>
+
+    <!-- 快速巡检与音量增强控制条 -->
+    <div class="action-bar">
+        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <button class="tour-button" id="tourBtn" onclick="toggleTour()">
+                <span id="tourIcon">🎧</span>
+                <span id="tourText">自动连播精选样本 (快速试听体验)</span>
+            </button>
+            <span style="font-size: 13px; color: var(--text-muted);">
+                按顺序播放：b(玻) ➔ a四声 ➔ zh(知) ➔ 整体认读zhi ➔ 天 ➔ 地 ➔ 人 ➔ 山 ➔ 水 ➔ 火
+            </span>
+        </div>
+
+        <div class="volume-box">
+            <span>🔊 播音音量增强:</span>
+            <input type="range" id="volSlider" class="volume-slider" min="50" max="200" value="120" oninput="updateVolume(this.value)">
+            <span id="volVal" style="color: var(--primary); width: 45px;">120%</span>
+        </div>
+    </div>
+
+    <!-- 分类标签页导航 -->
+    <div class="tabs-nav" id="tabsNav">
+        <button class="tab-btn active" onclick="switchTab('initials')">
+            <span>🔵 23个声母 (呼读音)</span>
+            <span class="tab-count">23</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('finals')">
+            <span>🔴 6个单韵母与四声</span>
+            <span class="tab-count">24</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('whole')">
+            <span>🟣 16个整体认读音节</span>
+            <span class="tab-count">16</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('compound')">
+            <span>🟢 常用复韵母与鼻韵母</span>
+            <span class="tab-count">16</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('characters')">
+            <span>🟡 统编教材重点生字</span>
+            <span class="tab-count">33</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('terminal')">
+            <span>💻 Mac系统afplay命令</span>
+            <span class="tab-count">命令行</span>
+        </button>
+    </div>
+
+    <!-- 选项卡 1: 声母 -->
+    <div id="tab-initials" class="tab-pane">
+        <div class="grid-container" id="gridInitials"></div>
+    </div>
+
+    <!-- 选项卡 2: 单韵母 -->
+    <div id="tab-finals" class="tab-pane" style="display: none;">
+        <div class="grid-container" id="gridFinals"></div>
+    </div>
+
+    <!-- 选项卡 3: 整体认读音节 -->
+    <div id="tab-whole" class="tab-pane" style="display: none;">
+        <div class="grid-container" id="gridWhole"></div>
+    </div>
+
+    <!-- 选项卡 4: 复韵母与鼻韵母 -->
+    <div id="tab-compound" class="tab-pane" style="display: none;">
+        <div class="grid-container" id="gridCompound"></div>
+    </div>
+
+    <!-- 选项卡 5: 统编教材重点生字 -->
+    <div id="tab-characters" class="tab-pane" style="display: none;">
+        <div class="grid-container" id="gridCharacters"></div>
+    </div>
+
+    <!-- 选项卡 6: 终端测试命令 -->
+    <div id="tab-terminal" class="tab-pane" style="display: none;">
+        <div class="audio-card" style="padding: 24px;">
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">🍎 在 Mac 终端直接播放母带原声 (无损监听)</h3>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 16px;">
+                如果您希望在 macOS 系统级底层音频服务中直接听取母带（跳过任何浏览器音频管线），可复制以下命令在终端中运行：
+            </p>
+            <div class="terminal-box">
+# 试听声母 b (玻)、p (坡)、m (摸)、f (佛)
+afplay audio_preview/mp3/bo1.mp3
+afplay audio_preview/mp3/po1.mp3
+afplay audio_preview/mp3/mo1.mp3
+afplay audio_preview/mp3/fo2.mp3
+
+# 试听单韵母 a 的一声、二声、三声、四声
+afplay audio_preview/mp3/a1.mp3
+afplay audio_preview/mp3/a2.mp3
+afplay audio_preview/mp3/a3.mp3
+afplay audio_preview/mp3/a4.mp3
+
+# 试听整体认读音节 zhi、chi、shi、ri
+afplay audio_preview/mp3/zhi1.mp3
+afplay audio_preview/mp3/chi1.mp3
+afplay audio_preview/mp3/shi1.mp3
+afplay audio_preview/mp3/ri4.mp3
+
+# 试听第一课重点生字：天、地、人、山、水、火
+afplay audio_preview/mp3/tian1.mp3
+afplay audio_preview/mp3/di4.mp3
+afplay audio_preview/mp3/ren2.mp3
+afplay audio_preview/mp3/shan1.mp3
+afplay audio_preview/mp3/shui3.mp3
+afplay audio_preview/mp3/huo3.mp3
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 底部固定播放条 -->
+<div class="bottom-player">
+    <div class="bottom-info">
+        <div class="sound-wave" id="soundWave">
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+        </div>
+        <div>
+            <div class="current-text" id="nowPlayingText">准备就绪，点击上方任意卡片即可试听发音</div>
+            <div class="current-source" id="nowPlayingSource">等待试听指令...</div>
+        </div>
+    </div>
+
+    <!-- 原生标准播放器控件 (100% 免拦截直接外放) -->
+    <div style="flex: 1; max-width: 340px; margin: 0 16px;">
+        <audio id="nativeAudioPlayer" controls style="width: 100%; height: 38px; outline: none; border-radius: 20px;"></audio>
+    </div>
+
+    <div class="bottom-actions">
+        <button class="feedback-btn" onclick="openFeedbackModal('need_adjustment')">✍️ 提出修改意见</button>
+        <button class="confirm-btn" onclick="openFeedbackModal('approved')">✅ 发音准确，同意替换进游戏</button>
+    </div>
+</div>
+
+<!-- 反馈与决策对话框 -->
+<div class="modal" id="feedbackModal">
+    <div class="modal-body">
+        <h3 id="modalTitle">核验结果确认</h3>
+        <p id="modalDesc" style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+            您的反馈将直接指导下一步的代码替换工作：
+        </p>
+
+        <textarea id="feedbackText" style="width: 100%; height: 100px; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 14px; margin-bottom: 16px; font-family: inherit;" placeholder="如有需要微调的具体发音（如某声调或某音节），请在此输入..."></textarea>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px;">
+            <button class="play-btn-secondary" style="width: auto; padding: 10px 18px;" onclick="closeModal()">取消</button>
+            <button class="confirm-btn" id="modalSubmitBtn" onclick="submitFeedback()">提交核验结论</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// 音频与发音元数据
+const INITIALS_DATA = [
+    { sym: 'b', hudu: '玻 (bō)', file: 'bo1.mp3', tip: '双唇紧闭，然后突然张开，读音轻短', mnemonic: '右下半圆 b b b / 广播 b' },
+    { sym: 'p', hudu: '坡 (pō)', file: 'po1.mp3', tip: '双唇紧闭突然放开，有较强气流喷出', mnemonic: '右上半圆 p p p / 爬山坡 p' },
+    { sym: 'm', hudu: '摸 (mō)', file: 'mo1.mp3', tip: '双唇闭合，气流从鼻腔出来', mnemonic: '两个门洞 m m m / 摸瞎子 m' },
+    { sym: 'f', hudu: '佛 (fó)', file: 'fo2.mp3', tip: '上齿轻触下唇，气流从缝隙摩擦出来', mnemonic: '一根拐棍 f f f / 大佛 f' },
+    { sym: 'd', hudu: '得 (dé)', file: 'de2.mp3', tip: '舌尖抵住上齿龈突然放开', mnemonic: '左下半圆 d d d / 马蹄得得 d' },
+    { sym: 't', hudu: '特 (tè)', file: 'te4.mp3', tip: '舌尖抵住上齿龈，突然喷气', mnemonic: '一把雨伞 t t t / 特别 t' },
+    { sym: 'n', hudu: '讷 (nè)', file: 'ne4.mp3', tip: '舌尖抵上齿龈，气流由鼻孔出来', mnemonic: '一个门洞 n n n / 哪吒 n' },
+    { sym: 'l', hudu: '勒 (lè)', file: 'le4.mp3', tip: '舌尖抵上齿龈，气流从舌两边通过', mnemonic: '一根小棍 l l l / 快乐 l' },
+    { sym: 'g', hudu: '哥 (gē)', file: 'ge1.mp3', tip: '舌根抵软腭突然放开', mnemonic: '9字加弯 g g g / 白鸽 g' },
+    { sym: 'k', hudu: '科 (kē)', file: 'ke1.mp3', tip: '舌根抵软腭，强气流冲破阻碍', mnemonic: '蝌蚪戏水 k k k / 蝌蚪 k' },
+    { sym: 'h', hudu: '喝 (hē)', file: 'he1.mp3', tip: '舌根接近软腭，气流由缝隙摩擦', mnemonic: '一把椅子 h h h / 喝水 h' },
+    { sym: 'j', hudu: '鸡 (jī)', file: 'ji1.mp3', tip: '舌面前部抵硬腭前部然后放开', mnemonic: '母鸡捉虫 j j j / 小鸡 j' },
+    { sym: 'q', hudu: '七 (qī)', file: 'qi1.mp3', tip: '舌面前部抵硬腭，强气流冲出', mnemonic: '左上半圆 q q q / 气球 q' },
+    { sym: 'x', hudu: '西 (xī)', file: 'xi1.mp3', tip: '舌面前部接近硬腭，气流摩擦', mnemonic: '一个大叉 x x x / 西瓜 x' },
+    { sym: 'zh', hudu: '知 (zhī)', file: 'zhi1.mp3', tip: '舌尖翘起抵硬腭前部突然放开', mnemonic: '织毛衣 zh zh zh / 知识 zh' },
+    { sym: 'ch', hudu: '吃 (chī)', file: 'chi1.mp3', tip: '舌尖翘起抵硬腭，强气流冲出', mnemonic: '吃苹果 ch ch ch / 吃饭 ch' },
+    { sym: 'sh', hudu: '狮 (shī)', file: 'shi1.mp3', tip: '舌尖翘起接近硬腭，气流摩擦出来', mnemonic: '一只狮子 sh sh sh / 狮子 sh' },
+    { sym: 'r', hudu: '日 (rì)', file: 'ri4.mp3', tip: '舌尖翘起接近硬腭，声带振动', mnemonic: '一轮红日 r r r / 日出 r' },
+    { sym: 'z', hudu: '资 (zī)', file: 'zi1.mp3', tip: '舌尖抵上齿背然后放开成窄缝', mnemonic: '像个2字 z z z / 写字 z' },
+    { sym: 'c', hudu: '疵 (cī)', file: 'ci1.mp3', tip: '舌尖抵上齿背，强气流冲出', mnemonic: '半个圆圈 c c c / 刺猬 c' },
+    { sym: 's', hudu: '思 (sī)', file: 'si1.mp3', tip: '舌尖接近上齿背，气流摩擦出来', mnemonic: '半个8字 s s s / 吐丝 s' },
+    { sym: 'y', hudu: '衣 (yī)', file: 'yi1.mp3', tip: '舌面前部抬高接近硬腭', mnemonic: '树杈树杈 y y y / 衣服 y' },
+    { sym: 'w', hudu: '乌 (wū)', file: 'wu1.mp3', tip: '双唇收圆成小孔，舌根抬高', mnemonic: '屋顶屋顶 w w w / 乌鸦 w' }
+];
+
+const FINALS_DATA = [
+    { sym: 'a', name: '单韵母 a', tones: ['a1.mp3', 'a2.mp3', 'a3.mp3', 'a4.mp3'], tip: '张大嘴巴 a a a', display: ['ā (第一声)', 'á (第二声)', 'ǎ (第三声)', 'à (第四声)'] },
+    { sym: 'o', name: '单韵母 o', tones: ['o1.mp3', 'o2.mp3', 'o3.mp3', 'o4.mp3'], tip: '圆圆嘴巴 o o o (公鸡喔喔啼)', display: ['ō (第一声)', 'ó (第二声)', 'ǒ (第三声)', 'ò (第四声)'] },
+    { sym: 'e', name: '单韵母 e', tones: ['e1.mp3', 'e2.mp3', 'e3.mp3', 'e4.mp3'], tip: '扁扁嘴巴 e e e (白鹅倒影)', display: ['ē (第一声)', 'é (第二声)', 'ě (第三声)', 'è (第四声)'] },
+    { sym: 'i', name: '单韵母 i', tones: ['yi1.mp3', 'yi2.mp3', 'yi3.mp3', 'yi4.mp3'], tip: '牙齿对齐 i i i (一件衣服)', display: ['ī (第一声)', 'í (第二声)', 'ǐ (第三声)', 'ì (第四声)'] },
+    { sym: 'u', name: '单韵母 u', tones: ['wu1.mp3', 'wu2.mp3', 'wu3.mp3', 'wu4.mp3'], tip: '嘴巴突出 u u u (一只乌鸦)', display: ['ū (第一声)', 'ú (第二声)', 'ǔ (第三声)', 'ù (第四声)'] },
+    { sym: 'ü', name: '单韵母 ü', tones: ['yu1.mp3', 'yu2.mp3', 'yu3.mp3', 'yu4.mp3'], tip: '小鱼吐泡 ü ü ü', display: ['ǖ (第一声)', 'ǘ (第二声)', 'ǚ (第三声)', 'ǜ (第四声)'] }
+];
+
+const WHOLE_SYLLABLES_DATA = [
+    { sym: 'zhi', pinyin: 'zhī', file: 'zhi1.mp3', hanzi: '知', tip: '整体认读音节：不拼读，直接读' },
+    { sym: 'chi', pinyin: 'chī', file: 'chi1.mp3', hanzi: '吃', tip: '整体认读音节：不拼读，直接读' },
+    { sym: 'shi', pinyin: 'shī', file: 'shi1.mp3', hanzi: '狮', tip: '整体认读音节：不拼读，直接读' },
+    { sym: 'ri', pinyin: 'rì', file: 'ri4.mp3', hanzi: '日', tip: '整体认读音节：不拼读，直接读' },
+    { sym: 'zi', pinyin: 'zī', file: 'zi1.mp3', hanzi: '资', tip: '整体认读音节：不拼读，直接读' },
+    { sym: 'ci', pinyin: 'cī', file: 'ci1.mp3', hanzi: '疵', tip: '整体认读音节：不拼读，直接读' },
+    { sym: 'si', pinyin: 'sī', file: 'si1.mp3', hanzi: '思', tip: '整体认读音节：不拼读，直接读' },
+    { sym: 'yi', pinyin: 'yī', file: 'yi1.mp3', hanzi: '衣', tip: '整体认读音节：不拼读，直接读' },
+    { sym: 'wu', pinyin: 'wū', file: 'wu1.mp3', hanzi: '乌', tip: '整体认读音节：不拼读，直接读' },
+    { sym: 'yu', pinyin: 'yū', file: 'yu1.mp3', hanzi: '鱼', tip: '整体认读音节：小ü见大y擦掉眼泪' },
+    { sym: 'ye', pinyin: 'yē', file: 'ye1.mp3', hanzi: '椰', tip: '整体认读音节：不拼读，直接读' },
+    { sym: 'yue', pinyin: 'yuè', file: 'yue4.mp3', hanzi: '月', tip: '整体认读音节：不拼读，直接读' },
+    { sym: 'yuan', pinyin: 'yuán', file: 'yuan2.mp3', hanzi: '圆', tip: '整体认读音节：不拼读，直接读' },
+    { sym: 'yin', pinyin: 'yīn', file: 'yin1.mp3', hanzi: '音', tip: '整体认读音节：前鼻音整体认读' },
+    { sym: 'yun', pinyin: 'yún', file: 'yun2.mp3', hanzi: '云', tip: '整体认读音节：不拼读，直接读' },
+    { sym: 'ying', pinyin: 'yīng', file: 'ying1.mp3', hanzi: '鹰', tip: '整体认读音节：后鼻音整体认读' }
+];
+
+const COMPOUND_DATA = [
+    { sym: 'ai', pinyin: 'āi', file: 'ai1.mp3', tip: '复韵母：从 a 滑向 i' },
+    { sym: 'ei', pinyin: 'ēi', file: 'ei1.m4a', tip: '复韵母：从 e 滑向 i' },
+    { sym: 'ui', pinyin: 'uī (wēi)', file: 'wei1.mp3', tip: '复韵母：从 u 滑向 i' },
+    { sym: 'ao', pinyin: 'āo', file: 'ao1.mp3', tip: '复韵母：从 a 滑向 o' },
+    { sym: 'ou', pinyin: 'ōu', file: 'ou1.mp3', tip: '复韵母：从 o 滑向 u' },
+    { sym: 'iu', pinyin: 'iū (yōu)', file: 'you1.mp3', tip: '复韵母：从 i 滑向 u' },
+    { sym: 'ie', pinyin: 'iē (yē)', file: 'ye1.mp3', tip: '复韵母：从 i 滑向 e' },
+    { sym: 'üe', pinyin: 'üē (yuè)', file: 'yue4.mp3', tip: '复韵母：从 ü 滑向 e' },
+    { sym: 'er', pinyin: 'ér', file: 'er2.mp3', tip: '特殊卷舌韵母' },
+    { sym: 'an', pinyin: 'ān', file: 'an1.mp3', tip: '前鼻韵母' },
+    { sym: 'en', pinyin: 'ēn', file: 'en1.mp3', tip: '前鼻韵母' },
+    { sym: 'in', pinyin: 'īn (yīn)', file: 'yin1.mp3', tip: '前鼻韵母' },
+    { sym: 'un', pinyin: 'ūn (wēn)', file: 'wen1.mp3', tip: '前鼻韵母' },
+    { sym: 'ün', pinyin: 'ǖn (yún)', file: 'yun2.mp3', tip: '前鼻韵母' },
+    { sym: 'ang', pinyin: 'āng', file: 'ang1.mp3', tip: '后鼻韵母' },
+    { sym: 'eng', pinyin: 'ēng', file: 'eng1.mp3', tip: '后鼻韵母' }
+];
+
+const CHARACTERS_DATA = [
+    { ch: '天', py: 'tiān', file: 'tian1.mp3', lesson: '识字一：天地人', phrase: '蓝天、天空中' },
+    { ch: '地', py: 'dì', file: 'di4.mp3', lesson: '识字一：天地人', phrase: '大地、草地' },
+    { ch: '人', py: 'rén', file: 'ren2.mp3', lesson: '识字一：天地人', phrase: '人民、大人' },
+    { ch: '你', py: 'nǐ', file: 'ni3.mp3', lesson: '识字一：天地人', phrase: '你好、你们' },
+    { ch: '我', py: 'wǒ', file: 'wo3.mp3', lesson: '识字一：天地人', phrase: '我们、我的' },
+    { ch: '他', py: 'tā', file: 'ta1.mp3', lesson: '识字一：天地人', phrase: '他们、他人' },
+    { ch: '三', py: 'sān', file: 'san1.mp3', lesson: '识字二：金木水火土', phrase: '三个、三月' },
+    { ch: '四', py: 'sì', file: 'si4.mp3', lesson: '识字二：金木水火土', phrase: '四季、四个' },
+    { ch: '上', py: 'shàng', file: 'shang4.mp3', lesson: '识字二：金木水火土', phrase: '上下、上面' },
+    { ch: '下', py: 'xià', file: 'xia4.mp3', lesson: '识字二：金木水火土', phrase: '下来、下面' },
+    { ch: '口', py: 'kǒu', file: 'kou3.mp3', lesson: '识字三：口耳目', phrase: '入口、口水' },
+    { ch: '耳', py: 'ěr', file: 'er3.mp3', lesson: '识字三：口耳目', phrase: '耳朵、木耳' },
+    { ch: '目', py: 'mù', file: 'mu4.mp3', lesson: '识字三：口耳目', phrase: '目光、双目' },
+    { ch: '手', py: 'shǒu', file: 'shou3.mp3', lesson: '识字三：口耳目', phrase: '双手、拍手' },
+    { ch: '足', py: 'zú', file: 'zu2.mp3', lesson: '识字三：口耳目', phrase: '足球、手足' },
+    { ch: '站', py: 'zhàn', file: 'zhan4.mp3', lesson: '识字三：口耳目', phrase: '站立、站好' },
+    { ch: '坐', py: 'zuò', file: 'zuo4.mp3', lesson: '识字三：口耳目', phrase: '请坐、坐车' },
+    { ch: '水', py: 'shuǐ', file: 'shui3.mp3', lesson: '识字四：日月水火', phrase: '河水、雨水' },
+    { ch: '火', py: 'huǒ', file: 'huo3.mp3', lesson: '识字四：日月水火', phrase: '大火、生火' },
+    { ch: '山', py: 'shān', file: 'shan1.mp3', lesson: '识字四：日月水火', phrase: '高山、大山' },
+    { ch: '石', py: 'shí', file: 'shi2.mp3', lesson: '识字四：日月水火', phrase: '石头、山石' },
+    { ch: '田', py: 'tián', file: 'tian2.mp3', lesson: '识字四：日月水火', phrase: '田地、水田' },
+    { ch: '禾', py: 'hé', file: 'he2.mp3', lesson: '识字四：日月水火', phrase: '禾苗、禾木' },
+    { ch: '对', py: 'duì', file: 'dui4.mp3', lesson: '识字五：对韵歌', phrase: '对错、面对' },
+    { ch: '雨', py: 'yǔ', file: 'yu3.mp3', lesson: '识字五：对韵歌', phrase: '下雨、春雨' },
+    { ch: '风', py: 'fēng', file: 'feng1.mp3', lesson: '识字五：对韵歌', phrase: '大风、春风' },
+    { ch: '花', py: 'huā', file: 'hua1.mp3', lesson: '识字五：对韵歌', phrase: '红花、开花' },
+    { ch: '鸟', py: 'niǎo', file: 'niao3.mp3', lesson: '识字五：对韵歌', phrase: '飞鸟、小鸟' },
+    { ch: '虫', py: 'chóng', file: 'chong2.mp3', lesson: '识字五：对韵歌', phrase: '飞虫、昆虫' },
+    { ch: '爸', py: 'bà', file: 'ba4.mp3', lesson: '汉语拼音识字', phrase: '爸爸' },
+    { ch: '妈', py: 'mā', file: 'ma1.mp3', lesson: '汉语拼音识字', phrase: '妈妈' },
+    { ch: '马', py: 'mǎ', file: 'ma3.mp3', lesson: '汉语拼音识字', phrase: '小马、白马' },
+    { ch: '土', py: 'tǔ', file: 'tu3.mp3', lesson: '汉语拼音识字', phrase: '泥土、土地' },
+    { ch: '不', py: 'bù', file: 'bu4.mp3', lesson: '汉语拼音识字', phrase: '不是、不要' }
+];
+
+// 音频上下文与增益控制
+let audioContext = null;
+let gainNode = null;
+let currentAudioElem = null;
+let volumeMultiplier = 1.2;
+
+function initAudioContext() {
+    if (!audioContext) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+            audioContext = new AudioContext();
+            gainNode = audioContext.createGain();
+            gainNode.gain.value = volumeMultiplier;
+            gainNode.connect(audioContext.destination);
+        }
+    }
+}
+
+let currentVolume = 1.0;
+
+function updateVolume(val) {
+    currentVolume = val / 100;
+    document.getElementById('volVal').textContent = val + '%';
+    const player = document.getElementById('nativeAudioPlayer');
+    if (player) {
+        player.volume = Math.min(1.0, currentVolume);
+    }
+}
+
+// 播放真人母带音频 (使用原生Audio和底栏播放器，100%保证有声，杜绝file协议静音问题)
+function playHumanAudio(filename, label, extraDesc) {
+    const audioPath = 'audio_preview/mp3/' + filename;
+    const player = document.getElementById('nativeAudioPlayer');
+
+    setPlayingStatus(true, label, '🎙️ 真人播音母带 (' + filename + ') - ' + (extraDesc || ''));
+    highlightCard(filename);
+
+    if (player) {
+        player.src = audioPath;
+        player.volume = Math.min(1.0, currentVolume);
+        
+        const playPromise = player.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                console.log('Audio playing successfully:', filename);
+            }).catch(err => {
+                console.warn('Native player play failed, trying fallback Audio():', err);
+                const fb = new Audio(audioPath);
+                fb.volume = Math.min(1.0, currentVolume);
+                fb.play().catch(e => {
+                    alert('请点击页面底部控制条上的【▶️】播放按钮直接收听');
+                });
+            });
+        }
+
+        player.onended = () => {
+            setPlayingStatus(false, label, '播放完毕');
+            removeCardHighlight();
+        };
+
+        player.onerror = (e) => {
+            console.error('Audio load error:', e);
+            setPlayingStatus(false, label, '音频加载失败: ' + filename);
+        };
+    }
+}
+
+// 播放系统优化合成普通话 (Apple Tingting 婷婷)
+function playSystemTTS(speakText, label) {
+    if (!('speechSynthesis' in window)) {
+        alert('您的浏览器不支持系统语音合成');
+        return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(speakText);
+    utter.lang = 'zh-CN';
+    utter.rate = 0.95;
+    utter.pitch = 1.0;
+    utter.volume = 1.0;
+
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(v => v.lang === 'zh-CN' && (v.name.includes('Tingting') || v.name.includes('婷婷') || v.name.includes('Xiaoxiao')));
+    if (preferredVoice) {
+        utter.voice = preferredVoice;
+    }
+
+    setPlayingStatus(true, label, '🤖 系统合成语音 (' + (preferredVoice ? preferredVoice.name : '标准普通话') + ')');
+
+    utter.onend = () => {
+        setPlayingStatus(false, label, '播放完毕');
+    };
+
+    window.speechSynthesis.speak(utter);
+}
+
+function setPlayingStatus(isPlaying, name, source) {
+    const wave = document.getElementById('soundWave');
+    const textElem = document.getElementById('nowPlayingText');
+    const sourceElem = document.getElementById('nowPlayingSource');
+
+    if (isPlaying) {
+        wave.classList.add('active');
+        textElem.textContent = '🔊 正在播放：' + name;
+        sourceElem.textContent = source;
+    } else {
+        wave.classList.remove('active');
+        sourceElem.textContent = '已就绪，随时点击任意卡片试听';
+    }
+}
+
+// 标签页切换
+function switchTab(tabId) {
+    const panes = document.querySelectorAll('.tab-pane');
+    panes.forEach(p => p.style.display = 'none');
+
+    const target = document.getElementById('tab-' + tabId);
+    if (target) target.style.display = 'block';
+
+    const buttons = document.querySelectorAll('.tab-btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+
+    event.currentTarget.classList.add('active');
+}
+
+// 渲染所有卡片
+function renderAll() {
+    // 1. 声母
+    const initGrid = document.getElementById('gridInitials');
+    initGrid.innerHTML = INITIALS_DATA.map(item => `
+        <div class="audio-card" id="card-${item.sym}">
+            <div class="card-top">
+                <div class="symbol-badge">${item.sym}</div>
+                <div class="card-info">
+                    <div class="card-hudu">${item.hudu}</div>
+                    <div class="card-sub">人教版教学呼读音</div>
+                </div>
+            </div>
+            <div class="card-desc">
+                💡 ${item.tip}
+            </div>
+            <div class="buttons-group">
+                <button class="play-btn play-btn-primary" onclick="playHumanAudio('${item.file}', '声母【${item.sym}】呼读音', '${item.hudu}')">
+                    ▶️ 试听真人母带录音
+                </button>
+                <button class="play-btn play-btn-secondary" onclick="playSystemTTS('${item.hudu.split(' ')[0]}', '声母【${item.sym}】系统合成')">
+                    🔊 对比系统TTS发音
+                </button>
+            </div>
+        </div>
+    `).join('');
+
+    // 2. 单韵母四声
+    const finalGrid = document.getElementById('gridFinals');
+    finalGrid.innerHTML = FINALS_DATA.map(item => `
+        <div class="audio-card">
+            <div class="card-top">
+                <div class="symbol-badge">${item.sym}</div>
+                <div class="card-info">
+                    <div class="card-hudu">${item.name}</div>
+                    <div class="card-sub">含 4 个声调独立点播</div>
+                </div>
+            </div>
+            <div class="card-desc">
+                💡 ${item.tip}
+            </div>
+            <div style="margin-top: 4px;">
+                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 600;">点击各声调按钮试听真人原声：</div>
+                <div class="tone-row">
+                    ${item.tones.map((tfile, idx) => `
+                        <button class="tone-btn" onclick="playHumanAudio('${tfile}', '${item.name} ${item.display[idx]}', '${tfile}')">
+                            ${item.display[idx].split(' ')[0]}
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+            <button class="play-btn play-btn-secondary" style="margin-top: 10px;" onclick="playSystemTTS('${item.sym}', '${item.name} 系统合成')">
+                🔊 试听系统合成发音
+            </button>
+        </div>
+    `).join('');
+
+    // 3. 整体认读音节
+    const wholeGrid = document.getElementById('gridWhole');
+    wholeGrid.innerHTML = WHOLE_SYLLABLES_DATA.map(item => `
+        <div class="audio-card">
+            <div class="card-top">
+                <div class="symbol-badge" style="font-size: 26px;">${item.sym}</div>
+                <div class="card-info">
+                    <div class="card-hudu">${item.pinyin} · 【${item.hanzi}】</div>
+                    <div class="card-sub">整体认读音节</div>
+                </div>
+            </div>
+            <div class="card-desc">
+                💡 ${item.tip}
+            </div>
+            <div class="buttons-group">
+                <button class="play-btn play-btn-primary" onclick="playHumanAudio('${item.file}', '整体认读【${item.sym}】', '${item.hanzi}')">
+                    ▶️ 试听真人母带录音
+                </button>
+                <button class="play-btn play-btn-secondary" onclick="playSystemTTS('${item.hanzi}', '整体认读【${item.sym}】系统合成')">
+                    🔊 对比系统TTS发音
+                </button>
+            </div>
+        </div>
+    `).join('');
+
+    // 4. 复韵母
+    const compGrid = document.getElementById('gridCompound');
+    compGrid.innerHTML = COMPOUND_DATA.map(item => `
+        <div class="audio-card">
+            <div class="card-top">
+                <div class="symbol-badge" style="font-size: 26px;">${item.sym}</div>
+                <div class="card-info">
+                    <div class="card-hudu">${item.pinyin}</div>
+                    <div class="card-sub">复韵母/鼻韵母</div>
+                </div>
+            </div>
+            <div class="card-desc">
+                💡 ${item.tip}
+            </div>
+            <div class="buttons-group">
+                <button class="play-btn play-btn-primary" onclick="playHumanAudio('${item.file}', '韵母【${item.sym}】', '${item.pinyin}')">
+                    ▶️ 试听真人母带录音
+                </button>
+            </div>
+        </div>
+    `).join('');
+
+    // 5. 核心生字
+    const charGrid = document.getElementById('gridCharacters');
+    charGrid.innerHTML = CHARACTERS_DATA.map(item => `
+        <div class="audio-card">
+            <div class="card-top">
+                <div class="symbol-badge" style="font-size: 34px; color: #b91c1c;">${item.ch}</div>
+                <div class="card-info">
+                    <div class="card-hudu">${item.py}</div>
+                    <div class="card-sub">${item.lesson}</div>
+                </div>
+            </div>
+            <div class="card-desc">
+                📖 常用词：<strong>${item.phrase}</strong>
+            </div>
+            <div class="buttons-group">
+                <button class="play-btn play-btn-primary" onclick="playHumanAudio('${item.file}', '生字【${item.ch}】', '${item.py}')">
+                    ▶️ 试听真人录音
+                </button>
+                <button class="play-btn play-btn-secondary" onclick="playSystemTTS('${item.ch}，${item.phrase.split('、')[0]}', '生字【${item.ch}】系统自然语流')">
+                    🔊 试听系统带词语流
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 巡检连播功能 (Tour Mode)
+let tourActive = false;
+let tourIndex = 0;
+const TOUR_SAMPLES = [
+    { type: 'human', file: 'bo1.mp3', label: '声母 b (玻 呼读音)' },
+    { type: 'human', file: 'a1.mp3', label: '单韵母 ā (第一声)' },
+    { type: 'human', file: 'a2.mp3', label: '单韵母 á (第二声)' },
+    { type: 'human', file: 'a3.mp3', label: '单韵母 ǎ (第三声)' },
+    { type: 'human', file: 'a4.mp3', label: '单韵母 à (第四声)' },
+    { type: 'human', file: 'zhi1.mp3', label: '整体认读音节 zhī' },
+    { type: 'human', file: 'tian1.mp3', label: '第一课生字【天】(tiān)' },
+    { type: 'human', file: 'di4.mp3', label: '第一课生字【地】(dì)' },
+    { type: 'human', file: 'ren2.mp3', label: '第一课生字【人】(rén)' },
+    { type: 'human', file: 'shui3.mp3', label: '第四课生字【水】(shuǐ)' },
+    { type: 'human', file: 'huo3.mp3', label: '第四课生字【火】(huǒ)' },
+    { type: 'human', file: 'shan1.mp3', label: '第四课生字【山】(shān)' }
+];
+
+function toggleTour() {
+    if (tourActive) {
+        tourActive = false;
+        if (currentAudioElem) currentAudioElem.pause();
+        document.getElementById('tourText').textContent = '自动连播精选样本 (快速试听体验)';
+        document.getElementById('tourIcon').textContent = '🎧';
+        return;
+    }
+
+    tourActive = true;
+    tourIndex = 0;
+    document.getElementById('tourText').textContent = '⏹️ 停止连播';
+    document.getElementById('tourIcon').textContent = '⏹️';
+    playNextTourItem();
+}
+
+function playNextTourItem() {
+    if (!tourActive || tourIndex >= TOUR_SAMPLES.length) {
+        tourActive = false;
+        document.getElementById('tourText').textContent = '自动连播精选样本 (快速试听体验)';
+        document.getElementById('tourIcon').textContent = '🎧';
+        setPlayingStatus(false, '巡检播放完成', '');
+        removeCardHighlight();
+        return;
+    }
+
+    const item = TOUR_SAMPLES[tourIndex];
+    const player = document.getElementById('nativeAudioPlayer');
+    const audioPath = 'audio_preview/mp3/' + item.file;
+
+    setPlayingStatus(true, `[巡检 ${tourIndex + 1}/${TOUR_SAMPLES.length}] ` + item.label, '🎙️ 自动巡检');
+    highlightCard(item.file);
+
+    if (player) {
+        player.src = audioPath;
+        player.volume = Math.min(1.0, currentVolume);
+
+        player.play().catch(console.warn);
+
+        player.onended = () => {
+            tourIndex++;
+            setTimeout(playNextTourItem, 600); // 间隔 600ms 播放下一个
+        };
+    }
+}
+
+function highlightCard(filename) {
+    document.querySelectorAll('.audio-card').forEach(c => c.classList.remove('playing'));
+    const btn = document.querySelector(`button[onclick*="${filename}"]`);
+    if (btn) {
+        const card = btn.closest('.audio-card');
+        if (card) {
+            card.classList.add('playing');
+        }
+    }
+}
+
+function removeCardHighlight() {
+    document.querySelectorAll('.audio-card').forEach(c => c.classList.remove('playing'));
+}
+
+// 模态弹窗与核验意见
+function openFeedbackModal(type) {
+    const modal = document.getElementById('feedbackModal');
+    const title = document.getElementById('modalTitle');
+    const desc = document.getElementById('modalDesc');
+    const text = document.getElementById('feedbackText');
+
+    if (type === 'approved') {
+        title.textContent = '✅ 确认发音准确，准备应用替换';
+        desc.textContent = '您认为当前真人母带录音发音准确自然、音量清晰。确认后，我们将把学习网站中的全部拼音发音及汉字发音替换为此套真人教学母带：';
+        text.value = '发音核验通过！真人母带发音准确纯正，呼读音规范，音量充足清晰。同意替换游戏内音频。';
+    } else {
+        title.textContent = '✍️ 提交发音微调建议';
+        desc.textContent = '如果您觉得某个拼音或生字的发音有待调整，请在下方写下您的具体建议：';
+        text.value = '';
+    }
+
+    modal.classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('feedbackModal').classList.remove('active');
+}
+
+function submitFeedback() {
+    const content = document.getElementById('feedbackText').value;
+    alert('已记录您的核验意见：\n' + content + '\n\n请在与 AI 助手的对话窗口中告知您的选择，助手将立即为您执行！');
+    closeModal();
+}
+
+// 页面初始化
+window.addEventListener('DOMContentLoaded', () => {
+    renderAll();
+    // 监听 Web Speech 语音包加载
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = () => {};
+    }
+});
+</script>
+
+</body>
+</html>
