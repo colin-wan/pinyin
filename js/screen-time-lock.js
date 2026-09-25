@@ -57,7 +57,12 @@ class ScreenTimeLockController {
       shortcutLockName: '拼音奖励15分钟恢复锁定',
       enableShortcutTrigger: true,
       targetAccuracy: 90, // 家长可调整正确率门槛（默认 90%）
-      lastSessionDate: new Date().toDateString()
+      lastSessionDate: new Date().toDateString(),
+      enableWebhook: false,
+      webhookPlatform: 'bark', // 'bark' | 'serverchan' | 'custom'
+      webhookKey: '',
+      webhookNotifyOnReward: true,
+      webhookNotifyOnExpire: true
     };
   }
 
@@ -217,6 +222,11 @@ class ScreenTimeLockController {
       this.triggerShortcut(this.state.shortcutName, 'unlock');
     }
 
+    // 如果开启了 Webhook 远程通知，向家长手机发送达标推送
+    if (this.state.enableWebhook && this.state.webhookNotifyOnReward !== false) {
+      this.sendWebhookNotification('reward_unlocked');
+    }
+
     this.hideRewardReadyModal();
     this.hideRewardStatusModal();
     this.showFloatingRewardBadge();
@@ -241,6 +251,11 @@ class ScreenTimeLockController {
     // 唤起快捷指令恢复 iPad 学习专注模式锁定
     if (this.state.enableShortcutTrigger && this.state.shortcutName) {
       this.triggerShortcut(this.state.shortcutName, 'lock');
+    }
+
+    // 如果开启了 Webhook 远程通知，提醒家长 15 分钟娱乐已到期
+    if (this.state.enableWebhook && this.state.webhookNotifyOnExpire !== false) {
+      this.sendWebhookNotification('reward_expired');
     }
 
     this.hideFloatingRewardBadge();
@@ -371,6 +386,152 @@ class ScreenTimeLockController {
       setTimeout(() => a.remove(), 400);
     } catch (e) {
       window.location.href = url;
+    }
+  }
+
+  /**
+   * 发送 Webhook 远程通知（支持 Bark、Server酱、自定义 Webhook）
+   * @param {'reward_unlocked' | 'reward_expired' | 'test'} eventType - 事件类型
+   * @param {object} extraData - 附加参数
+   * @returns {Promise<{ success: boolean, message: string, data?: any }>}
+   */
+  async sendWebhookNotification(eventType = 'reward_unlocked', extraData = {}) {
+    if (!this.state.enableWebhook && eventType !== 'test') {
+      return { success: false, message: '未开启手机通知 (Webhook)' };
+    }
+
+    if (eventType === 'reward_unlocked' && this.state.webhookNotifyOnReward === false) {
+      return { success: false, message: '已关闭“达标领奖时”推送' };
+    }
+    if (eventType === 'reward_expired' && this.state.webhookNotifyOnExpire === false) {
+      return { success: false, message: '已关闭“奖励到期时”推送' };
+    }
+
+    const rawKey = (this.state.webhookKey || '').trim();
+    if (!rawKey) {
+      return { success: false, message: '请先填写 Webhook Key 或推送地址' };
+    }
+
+    const platform = this.state.webhookPlatform || 'bark';
+    const accuracy = this.getAccuracy();
+    const answered = this.state.sessionQuestionsAnswered || 0;
+    const correct = this.state.sessionQuestionsCorrect || 0;
+    const studyMin = Math.max(1, Math.round((this.state.sessionStudySeconds || 0) / 60));
+    const targetMin = Math.round(this.targetStudySeconds / 60);
+
+    let title = '';
+    let body = '';
+
+    if (eventType === 'test') {
+      title = '🔔 拼音学习家长通知测试成功！';
+      body = '这是一条测试消息。您的手机已成功绑定 iPad 拼音学习打卡，学满达标时将第一时间通知您！';
+    } else if (eventType === 'reward_unlocked') {
+      title = '🎉 宝贝拼音学习达标！已领取15分钟奖励';
+      body = `学满 ${studyMin} 分钟，答对 ${correct}/${answered} 题（正确率 ${accuracy}%）。建议在手机「屏幕使用时间」批准 15 分钟娱乐！`;
+    } else if (eventType === 'reward_expired') {
+      title = '⏳ 15分钟 iPad 娱乐时间已结束';
+      body = '奖励倒计时已归零，iPad 拼音学习网站已自动恢复全屏锁定。请提醒宝贝休息或开启新一轮挑战！';
+    }
+
+    // 防作弊统计概要
+    let antiCheatSummary = '';
+    if (window.antiCheat) {
+      antiCheatSummary = `（平均思考: ${window.antiCheat.getAverageAnswerTimeStr()}，乱点拦截: ${window.antiCheat.stats.spamBlocked}次）`;
+    }
+
+    try {
+      if (platform === 'bark') {
+        let barkUrl = rawKey;
+        if (!barkUrl.startsWith('http://') && !barkUrl.startsWith('https://')) {
+          barkUrl = `https://api.day.app/${barkUrl}`;
+        }
+        barkUrl = barkUrl.replace(/\/+$/, '');
+
+        const postData = {
+          title: title,
+          body: body + (antiCheatSummary ? '\n' + antiCheatSummary : ''),
+          group: '拼音学习',
+          sound: eventType === 'reward_unlocked' ? 'minuet.caf' : (eventType === 'reward_expired' ? 'alarm.caf' : 'bell.caf'),
+          icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135768.png',
+          level: 'active',
+          badge: 1
+        };
+
+        try {
+          const res = await fetch(`${barkUrl}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify(postData)
+          });
+          if (res.ok) {
+            const data = await res.json().catch(() => ({}));
+            return { success: true, message: 'Bark 推送成功，已发送至 iPhone！', data };
+          }
+        } catch (postErr) {
+          console.warn('Bark POST failed, trying GET fallback...', postErr);
+        }
+
+        // GET 回退通道（兼容所有版本的 Bark）
+        const getUrl = `${barkUrl}/${encodeURIComponent(title)}/${encodeURIComponent(body)}?group=${encodeURIComponent('拼音学习')}&sound=${postData.sound}`;
+        await fetch(getUrl, { method: 'GET', mode: 'no-cors' });
+        return { success: true, message: 'Bark 推送请求已成功发出！' };
+      } else if (platform === 'serverchan') {
+        let sendKey = rawKey;
+        const match = rawKey.match(/SCT[0-9a-zA-Z]+/);
+        if (match) sendKey = match[0];
+
+        const sctUrl = `https://sctapi.ftqq.com/${sendKey}.send`;
+        const desp = `### 拼音打卡学情通知\n\n- **学习状态**：${title}\n- **学习用时**：${studyMin} 分钟 / 目标 ${targetMin} 分钟\n- **答题成绩**：答对 ${correct}/${answered} 题（正确率 **${accuracy}%**）\n- **真实度核验**：${antiCheatSummary || '正常认真学习'}\n- **通知时间**：${new Date().toLocaleTimeString()}\n\n> 💡 **家长建议**：请在 iPhone「屏幕使用时间」中为孩子批准 15 分钟娱乐时间！`;
+
+        const res = await fetch(sctUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `title=${encodeURIComponent(title)}&desp=${encodeURIComponent(desp)}`
+        });
+        const data = await res.json().catch(() => ({}));
+        if (data.code === 0 || res.ok) {
+          return { success: true, message: '微信 Server酱 推送成功，请查看微信！', data };
+        } else {
+          return { success: false, message: data.message || '微信推送失败，请检查 SendKey 是否正确' };
+        }
+      } else {
+        // 自定义 Webhook
+        let customUrl = rawKey;
+        if (!customUrl.startsWith('http://') && !customUrl.startsWith('https://')) {
+          customUrl = 'https://' + customUrl;
+        }
+
+        const payload = {
+          event: eventType,
+          title: title,
+          body: body,
+          studySeconds: this.state.sessionStudySeconds || 0,
+          questionsAnswered: answered,
+          questionsCorrect: correct,
+          accuracy: accuracy,
+          antiCheat: window.antiCheat ? window.antiCheat.stats : null,
+          timestamp: Date.now()
+        };
+
+        try {
+          await fetch(customUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } catch (fetchErr) {
+          console.warn('Custom POST failed, fallback with no-cors...', fetchErr);
+          await fetch(customUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify(payload)
+          });
+        }
+        return { success: true, message: '自定义 Webhook 数据已发送成功！' };
+      }
+    } catch (err) {
+      console.error('sendWebhookNotification error:', err);
+      return { success: false, message: '推送失败：' + (err.message || '网络连接异常') };
     }
   }
 

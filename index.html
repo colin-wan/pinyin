@@ -294,6 +294,9 @@
         <button class="parent-tab-btn px-3 py-1.5 rounded-xl font-bold text-xs bg-neutral-100 text-neutral-600 hover:bg-neutral-200" data-tab="settings">
           ⚙️ 密码与声音设置
         </button>
+        <button class="parent-tab-btn px-3 py-1.5 rounded-xl font-bold text-xs bg-neutral-100 text-neutral-600 hover:bg-neutral-200" data-tab="webhook">
+          🔔 手机通知 (Webhook)
+        </button>
       </div>
 
       <!-- Tab 1: 学情看板与错题本 -->
@@ -549,6 +552,98 @@
           <button id="parent-reset-progress" class="text-xs text-rose-500 hover:text-rose-700 font-bold px-3 py-2 rounded-xl transition">
             重置进度从第1课开始
           </button>
+        </div>
+      </div>
+
+      <!-- Tab 4: 手机通知与 Webhook 推送设置 -->
+      <div id="parent-tab-content-webhook" class="parent-tab-page hidden space-y-4">
+        <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-2xl space-y-2">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <h4 class="text-sm font-black text-indigo-950 flex items-center space-x-1.5">
+              <span>🔔</span>
+              <span>学习达标即时推送至家长手机（Webhook 自动化）</span>
+            </h4>
+            <span class="text-[10px] bg-indigo-200 text-indigo-900 font-bold px-2 py-0.5 rounded-md">防作弊真实核验</span>
+          </div>
+          <p class="text-xs text-indigo-900 leading-relaxed font-medium">
+            当孩子在 iPad 上<strong>认真学满 15 分钟、答题达标 20 道且正确率达到门槛</strong>时，系统会自动向您的手机（iPhone、Apple Watch 或微信）发送推送通知。收到通知后，您可在手机“屏幕使用时间”中一键批准 15 分钟娱乐时长！
+          </p>
+        </div>
+
+        <!-- Webhook 开关与通道配置 -->
+        <div class="bg-neutral-50 p-4 rounded-2xl border border-neutral-200 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h4 class="text-xs font-black text-neutral-800">📡 开启手机推送服务</h4>
+              <p class="text-[10px] text-neutral-400">孩子达标领取奖励或奖励结束时，静默发送提醒</p>
+            </div>
+            <input type="checkbox" id="parent-webhook-toggle" class="w-5 h-5 rounded text-sky-600 cursor-pointer">
+          </div>
+
+          <div class="pt-2 border-t border-neutral-200/60 space-y-3">
+            <div>
+              <label class="text-[11px] font-bold text-neutral-700 block mb-1">推送通道选择：</label>
+              <select id="parent-webhook-platform" class="w-full text-xs bg-white border border-neutral-300 rounded-xl px-3 py-2 font-bold text-neutral-800 shadow-sm cursor-pointer">
+                <option value="bark">🍎 Bark 推送（强烈推荐 iPhone / Apple Watch 用户，免费免挂机秒到）</option>
+                <option value="serverchan">💬 Server酱·方糖（直接推送到家长微信服务号）</option>
+                <option value="custom">🌐 自定义 Webhook（POST / GET 自建服务器或自动化工作流）</option>
+              </select>
+            </div>
+
+            <div class="space-y-1">
+              <label id="parent-webhook-key-label" class="text-[11px] font-bold text-neutral-700 block">
+                🔑 Bark 设备 Key 或完整 API 地址：
+              </label>
+              <input type="text" id="parent-webhook-key" class="w-full text-xs border border-neutral-300 rounded-xl px-3 py-2 font-mono bg-white" placeholder="例如：https://api.day.app/你的Key/ 或直接输入Key">
+              <p id="parent-webhook-key-hint" class="text-[10px] text-neutral-400 leading-normal">
+                在 iPhone App Store 搜索下载「Bark」，打开后复制主页的专属链接或 Key 粘贴到此处即可。
+              </p>
+            </div>
+
+            <!-- 推送时机勾选 -->
+            <div class="pt-2 border-t border-neutral-200/60 space-y-2">
+              <label class="text-[11px] font-bold text-neutral-700 block">触发推送时机：</label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <label class="flex items-center space-x-2 bg-white p-2.5 rounded-xl border border-neutral-200 cursor-pointer">
+                  <input type="checkbox" id="parent-webhook-notify-reward" class="w-4 h-4 rounded text-sky-600" checked>
+                  <span class="font-bold text-neutral-700">🎉 达标领取 15 分钟奖励时</span>
+                </label>
+                <label class="flex items-center space-x-2 bg-white p-2.5 rounded-xl border border-neutral-200 cursor-pointer">
+                  <input type="checkbox" id="parent-webhook-notify-expire" class="w-4 h-4 rounded text-sky-600" checked>
+                  <span class="font-bold text-neutral-700">⏳ 15分钟奖励倒计时结束时</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 测试按钮 -->
+            <div class="pt-2 flex items-center space-x-2">
+              <button id="btn-test-webhook" type="button" class="flex-1 bg-gradient-to-r from-indigo-500 to-sky-500 hover:from-indigo-600 hover:to-sky-600 active:scale-95 text-white font-extrabold text-xs py-2.5 rounded-xl shadow transition cursor-pointer flex items-center justify-center space-x-1.5">
+                <span>📲</span>
+                <span id="btn-test-webhook-text">发送一条测试通知到我的手机</span>
+              </button>
+            </div>
+
+            <!-- 测试反馈提示 -->
+            <div id="webhook-test-feedback" class="hidden p-3 rounded-xl border text-xs font-medium space-y-1 transition"></div>
+          </div>
+        </div>
+
+        <!-- 30 秒上手教程卡片 -->
+        <div class="bg-white p-4 rounded-2xl border border-neutral-200 shadow-sm space-y-2 text-xs">
+          <div class="font-black text-indigo-900 flex items-center space-x-1.5">
+            <span>💡</span>
+            <span>如何获取接收通知的 Key？</span>
+          </div>
+          <div class="space-y-2 text-neutral-600 leading-relaxed text-[11px]">
+            <div class="p-2.5 bg-neutral-50 rounded-xl border border-neutral-100">
+              <strong class="text-neutral-900">选项 1：iPhone / Apple Watch 用户首选「Bark」（极力推荐）</strong>
+              <p class="text-neutral-500 mt-1">在 iPhone 的 App Store 免费搜索下载 <strong>Bark</strong>，打开后即可看到专属 URL（形如 <code>https://api.day.app/xxxxxxxx/</code>），复制粘贴上方即可。无需注册账号，支持弹窗铃声、手表震动与长按直接查看学习数据。</p>
+            </div>
+            <div class="p-2.5 bg-neutral-50 rounded-xl border border-neutral-100">
+              <strong class="text-neutral-900">选项 2：微信接收通知用户首选「Server酱」</strong>
+              <p class="text-neutral-500 mt-1">微信扫码登录 <code>sct.ftqq.com</code>，获取 <strong>SendKey</strong> 粘贴至上方。孩子达标后消息直接推送到家长的微信聊天窗口中。</p>
+            </div>
+          </div>
         </div>
       </div>
 

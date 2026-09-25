@@ -1252,6 +1252,129 @@ class PinyinApp {
     document.getElementById('btn-test-shortcut-lock')?.addEventListener('click', () => handleShortcutTest('lock'));
     document.getElementById('btn-test-shortcut')?.addEventListener('click', () => handleShortcutTest('unlock'));
 
+    // Webhook 平台切换联动更新标签与提示
+    this.updateWebhookPlatformUI = (platform) => {
+      const labelEl = document.getElementById('parent-webhook-key-label');
+      const inputEl = document.getElementById('parent-webhook-key');
+      const hintEl = document.getElementById('parent-webhook-key-hint');
+      if (!labelEl || !inputEl || !hintEl) return;
+
+      if (platform === 'bark') {
+        labelEl.innerText = '🔑 Bark 设备 Key 或完整推送 URL：';
+        inputEl.placeholder = '例如：https://api.day.app/你的Key/ 或直接输入Key';
+        hintEl.innerHTML = '在 iPhone 的 App Store 免费搜索下载「Bark」，打开后复制主页的专属链接或 Key 粘贴到此处即可。';
+      } else if (platform === 'serverchan') {
+        labelEl.innerText = '🔑 Server酱 SendKey：';
+        inputEl.placeholder = '例如：SCT123456Txxxxxxx';
+        hintEl.innerHTML = '微信扫码登录 <code>sct.ftqq.com</code> 获取 SendKey 粘贴到此处，通知将推送到家长微信公众号。';
+      } else {
+        labelEl.innerText = '🌐 自定义 Webhook 接口 URL：';
+        inputEl.placeholder = '例如：https://your-server.com/api/pinyin-webhook';
+        hintEl.innerHTML = '系统将以 POST JSON 方式推送事件（包含 event、title、body、accuracy、studySeconds、antiCheat 等字段）。';
+      }
+    };
+
+    document.getElementById('parent-webhook-platform')?.addEventListener('change', (e) => {
+      const platform = e.target.value;
+      if (this.updateWebhookPlatformUI) this.updateWebhookPlatformUI(platform);
+      if (window.screenTimeLock) {
+        window.screenTimeLock.state.webhookPlatform = platform;
+        window.screenTimeLock.saveState();
+      }
+    });
+
+    document.getElementById('parent-webhook-toggle')?.addEventListener('change', (e) => {
+      if (window.screenTimeLock) {
+        window.screenTimeLock.state.enableWebhook = e.target.checked;
+        window.screenTimeLock.saveState();
+      }
+    });
+
+    document.getElementById('parent-webhook-key')?.addEventListener('input', (e) => {
+      if (window.screenTimeLock) {
+        window.screenTimeLock.state.webhookKey = e.target.value.trim();
+        window.screenTimeLock.saveState();
+      }
+    });
+
+    document.getElementById('parent-webhook-notify-reward')?.addEventListener('change', (e) => {
+      if (window.screenTimeLock) {
+        window.screenTimeLock.state.webhookNotifyOnReward = e.target.checked;
+        window.screenTimeLock.saveState();
+      }
+    });
+
+    document.getElementById('parent-webhook-notify-expire')?.addEventListener('change', (e) => {
+      if (window.screenTimeLock) {
+        window.screenTimeLock.state.webhookNotifyOnExpire = e.target.checked;
+        window.screenTimeLock.saveState();
+      }
+    });
+
+    // 测试发送 Webhook 推送
+    document.getElementById('btn-test-webhook')?.addEventListener('click', async () => {
+      if (!window.screenTimeLock) return;
+
+      const toggle = document.getElementById('parent-webhook-toggle');
+      const platformSelect = document.getElementById('parent-webhook-platform');
+      const keyInput = document.getElementById('parent-webhook-key');
+      const feedbackEl = document.getElementById('webhook-test-feedback');
+      const btnText = document.getElementById('btn-test-webhook-text');
+
+      const keyVal = keyInput?.value?.trim() || '';
+      if (!keyVal) {
+        if (feedbackEl) {
+          feedbackEl.className = 'p-3 rounded-xl border text-xs font-bold transition bg-rose-50 border-rose-200 text-rose-900';
+          feedbackEl.innerHTML = '⚠️ 请先输入 Key 或 Webhook 推送地址！';
+        }
+        keyInput?.focus();
+        return;
+      }
+
+      window.screenTimeLock.state.enableWebhook = true;
+      if (toggle) toggle.checked = true;
+      window.screenTimeLock.state.webhookPlatform = platformSelect?.value || 'bark';
+      window.screenTimeLock.state.webhookKey = keyVal;
+      window.screenTimeLock.saveState();
+
+      if (btnText) btnText.innerText = '正在发送测试通知...';
+      if (feedbackEl) {
+        feedbackEl.className = 'p-3 rounded-xl border text-xs font-medium transition bg-sky-50 border-sky-200 text-sky-900';
+        feedbackEl.innerHTML = '⏳ 正在向目标手机发送测试推送，请稍候...';
+      }
+
+      const res = await window.screenTimeLock.sendWebhookNotification('test');
+
+      if (btnText) btnText.innerText = '发送一条测试通知到我的手机';
+      if (feedbackEl) {
+        if (res.success) {
+          feedbackEl.className = 'p-3 rounded-xl border text-xs font-medium space-y-1 transition bg-emerald-50 border-emerald-200 text-emerald-900';
+          feedbackEl.innerHTML = `
+            <div class="font-extrabold flex items-center space-x-1">
+              <span>✅</span>
+              <span>${res.message || '测试推送发送成功！'}</span>
+            </div>
+            <div class="text-[11px] text-emerald-800">
+              请检查您的手机（iPhone 通知中心 / Apple Watch 振动 / 微信服务号聊天窗口），确认是否收到测试消息。
+            </div>
+          `;
+          if (window.audioEngine) window.audioEngine.playSuccess();
+        } else {
+          feedbackEl.className = 'p-3 rounded-xl border text-xs font-medium space-y-1 transition bg-rose-50 border-rose-200 text-rose-900';
+          feedbackEl.innerHTML = `
+            <div class="font-extrabold flex items-center space-x-1">
+              <span>❌</span>
+              <span>发送失败：${res.message}</span>
+            </div>
+            <div class="text-[11px] text-rose-700">
+              请检查 Key 或 URL 是否复制完整无误，以及网络连接是否通畅。
+            </div>
+          `;
+          if (window.audioEngine) window.audioEngine.playGentleOops();
+        }
+      }
+    });
+
     // 音量与语速设置联动
     document.getElementById('parent-boost-toggle')?.addEventListener('change', (e) => {
       if (window.audioEngine) {
@@ -1320,6 +1443,20 @@ class PinyinApp {
       this.state.data.parentSettings.unlockAll = unlockAll;
       this.state.saveData();
 
+      if (window.screenTimeLock) {
+        const whToggle = document.getElementById('parent-webhook-toggle');
+        if (whToggle) window.screenTimeLock.state.enableWebhook = whToggle.checked;
+        const whPlatform = document.getElementById('parent-webhook-platform');
+        if (whPlatform) window.screenTimeLock.state.webhookPlatform = whPlatform.value;
+        const whKey = document.getElementById('parent-webhook-key');
+        if (whKey) window.screenTimeLock.state.webhookKey = whKey.value.trim();
+        const whNotifyReward = document.getElementById('parent-webhook-notify-reward');
+        if (whNotifyReward) window.screenTimeLock.state.webhookNotifyOnReward = whNotifyReward.checked;
+        const whNotifyExpire = document.getElementById('parent-webhook-notify-expire');
+        if (whNotifyExpire) window.screenTimeLock.state.webhookNotifyOnExpire = whNotifyExpire.checked;
+        window.screenTimeLock.saveState();
+      }
+
       modal?.classList.add('hidden');
       this.renderMap();
     });
@@ -1371,6 +1508,32 @@ class PinyinApp {
       if (feedbackEl) {
         feedbackEl.className = 'hidden p-3 rounded-xl border text-xs font-medium space-y-1.5 transition';
         feedbackEl.innerHTML = '';
+      }
+
+      // 回填 Webhook 手机通知设置
+      const whToggle = document.getElementById('parent-webhook-toggle');
+      if (whToggle) whToggle.checked = !!window.screenTimeLock.state.enableWebhook;
+
+      const whPlatform = document.getElementById('parent-webhook-platform');
+      if (whPlatform) {
+        const pVal = window.screenTimeLock.state.webhookPlatform || 'bark';
+        whPlatform.value = pVal;
+        if (this.updateWebhookPlatformUI) this.updateWebhookPlatformUI(pVal);
+      }
+
+      const whKey = document.getElementById('parent-webhook-key');
+      if (whKey) whKey.value = window.screenTimeLock.state.webhookKey || '';
+
+      const whNotifyReward = document.getElementById('parent-webhook-notify-reward');
+      if (whNotifyReward) whNotifyReward.checked = window.screenTimeLock.state.webhookNotifyOnReward !== false;
+
+      const whNotifyExpire = document.getElementById('parent-webhook-notify-expire');
+      if (whNotifyExpire) whNotifyExpire.checked = window.screenTimeLock.state.webhookNotifyOnExpire !== false;
+
+      const whFeedback = document.getElementById('webhook-test-feedback');
+      if (whFeedback) {
+        whFeedback.className = 'hidden p-3 rounded-xl border text-xs font-medium space-y-1 transition';
+        whFeedback.innerHTML = '';
       }
 
       const curAcc = String(window.screenTimeLock.getTargetAccuracy());
