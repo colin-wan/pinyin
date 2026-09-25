@@ -1375,6 +1375,92 @@ class PinyinApp {
       }
     });
 
+    // 测试专用按钮：模拟孩子达标并向家长手机推送解锁申请
+    document.getElementById('btn-test-reward-webhook')?.addEventListener('click', async () => {
+      if (!window.screenTimeLock) return;
+
+      const toggle = document.getElementById('parent-webhook-toggle');
+      const platformSelect = document.getElementById('parent-webhook-platform');
+      const keyInput = document.getElementById('parent-webhook-key');
+      const feedbackEl = document.getElementById('webhook-test-feedback');
+      const btnText = document.getElementById('btn-test-reward-webhook-text');
+
+      const keyVal = keyInput?.value?.trim() || '';
+      if (!keyVal) {
+        if (feedbackEl) {
+          feedbackEl.className = 'p-3 rounded-xl border text-xs font-bold transition bg-rose-50 border-rose-200 text-rose-900';
+          feedbackEl.innerHTML = '⚠️ 请先输入 Key 或 Webhook 推送地址！';
+        }
+        keyInput?.focus();
+        return;
+      }
+
+      window.screenTimeLock.state.enableWebhook = true;
+      if (toggle) toggle.checked = true;
+      window.screenTimeLock.state.webhookPlatform = platformSelect?.value || 'bark';
+      window.screenTimeLock.state.webhookKey = keyVal;
+      window.screenTimeLock.saveState();
+
+      if (btnText) btnText.innerText = '正在模拟学情并向家长推送...';
+      if (feedbackEl) {
+        feedbackEl.className = 'p-3 rounded-xl border text-xs font-medium transition bg-sky-50 border-sky-200 text-sky-900';
+        feedbackEl.innerHTML = '⏳ 正在模拟孩子学满15分钟且达标，并发送解锁申请通知...';
+      }
+
+      // 执行模拟达标并推送（不打断当前家长面板）
+      const res = await window.screenTimeLock.simulateChildGoalAndNotifyParent(false);
+
+      if (btnText) btnText.innerText = '【测试按钮】模拟孩子达标并推送家长解锁';
+      if (feedbackEl) {
+        if (res.success) {
+          feedbackEl.className = 'p-3 rounded-xl border text-xs font-medium space-y-1.5 transition bg-emerald-50 border-emerald-200 text-emerald-900';
+          feedbackEl.innerHTML = `
+            <div class="font-extrabold flex items-center space-x-1">
+              <span>🎯</span>
+              <span>模拟达标成功！解锁通知已推送至家长手机！</span>
+            </div>
+            <div class="text-[11px] text-emerald-800 leading-relaxed">
+              <strong>已发送内容</strong>：<em>“🎉 宝贝拼音学习达标！申请解锁 15 分钟 iPad 时间”</em>。<br>
+              请查看您的手机（iPhone / Apple Watch / 微信）接收效果。返回 iPad 页面即可看到“达标已解锁”动画！
+            </div>
+          `;
+          if (window.audioEngine) window.audioEngine.playSuccess();
+        } else {
+          feedbackEl.className = 'p-3 rounded-xl border text-xs font-medium space-y-1 transition bg-rose-50 border-rose-200 text-rose-900';
+          feedbackEl.innerHTML = `
+            <div class="font-extrabold flex items-center space-x-1">
+              <span>❌</span>
+              <span>推送失败：${res.message}</span>
+            </div>
+            <div class="text-[11px] text-rose-700">
+              请检查推送 Key 是否正确，以及网络连接是否正常。
+            </div>
+          `;
+          if (window.audioEngine) window.audioEngine.playGentleOops();
+        }
+      }
+    });
+
+    // 达标弹窗中主动向家长手机推送解锁申请
+    document.getElementById('btn-push-parent-unlock')?.addEventListener('click', async () => {
+      if (!window.screenTimeLock) return;
+      const textEl = document.getElementById('btn-push-parent-unlock-text');
+      if (textEl) textEl.innerText = '正在向家长手机推送...';
+      const res = await window.screenTimeLock.sendWebhookNotification('reward_unlocked');
+      if (textEl) {
+        if (res.success) {
+          textEl.innerText = '✅ 已成功推送到家长手机！';
+          if (window.audioEngine) window.audioEngine.playSuccess();
+        } else {
+          textEl.innerText = '❌ 推送失败：' + (res.message || '请检查配置');
+          if (window.audioEngine) window.audioEngine.playGentleOops();
+        }
+        setTimeout(() => {
+          if (textEl) textEl.innerText = '向家长手机推送「申请解锁」通知';
+        }, 3500);
+      }
+    });
+
     // 音量与语速设置联动
     document.getElementById('parent-boost-toggle')?.addEventListener('change', (e) => {
       if (window.audioEngine) {

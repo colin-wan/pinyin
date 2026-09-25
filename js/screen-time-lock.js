@@ -185,6 +185,19 @@ class ScreenTimeLockController {
     if (window.audioEngine) {
       window.audioEngine.playScreenTimeRewardFanfare();
     }
+    // 五彩纸屑庆祝
+    if (window.celebrationFx) {
+      window.celebrationFx.burst(window.innerWidth / 2, window.innerHeight / 2, 60);
+    }
+    // 伴学小精灵语音
+    if (window.mascotPipi) {
+      window.mascotPipi.speak('🎉 太棒啦！你已经学满达标，快向爸爸妈妈申请解锁奖励吧！');
+    }
+    // 达标时自动向家长手机推送解锁申请
+    if (this.state.enableWebhook && this.state.webhookNotifyOnReward !== false && !this._hasNotifiedRewardUnlocked) {
+      this.sendWebhookNotification('reward_unlocked');
+      this._hasNotifiedRewardUnlocked = true;
+    }
     // 弹出欢庆弹窗
     this.showRewardReadyModal();
   }
@@ -426,8 +439,9 @@ class ScreenTimeLockController {
       title = '🔔 拼音学习家长通知测试成功！';
       body = '这是一条测试消息。您的手机已成功绑定 iPad 拼音学习打卡，学满达标时将第一时间通知您！';
     } else if (eventType === 'reward_unlocked') {
-      title = '🎉 宝贝拼音学习达标！已领取15分钟奖励';
-      body = `学满 ${studyMin} 分钟，答对 ${correct}/${answered} 题（正确率 ${accuracy}%）。建议在手机「屏幕使用时间」批准 15 分钟娱乐！`;
+      const isSim = extraData && extraData.isSimulation;
+      title = isSim ? '🎯【测试】宝贝拼音学习达标！申请解锁 15 分钟 iPad 时间' : '🎉 宝贝拼音学习达标！申请解锁 15 分钟 iPad 时间';
+      body = `宝贝已认真学满 ${studyMin} 分钟，答对 ${correct}/${answered} 题（正确率 ${accuracy}%）！请在手机「屏幕使用时间」中为孩子批准 15 分钟娱乐时长！`;
     } else if (eventType === 'reward_expired') {
       title = '⏳ 15分钟 iPad 娱乐时间已结束';
       body = '奖励倒计时已归零，iPad 拼音学习网站已自动恢复全屏锁定。请提醒宝贝休息或开启新一轮挑战！';
@@ -533,6 +547,46 @@ class ScreenTimeLockController {
       console.error('sendWebhookNotification error:', err);
       return { success: false, message: '推送失败：' + (err.message || '网络连接异常') };
     }
+  }
+
+  /**
+   * 测试专用：一键模拟孩子学习达标并向家长手机推送解锁申请
+   * @param {boolean} openModal - 是否弹出达标庆祝弹窗
+   * @returns {Promise<{ success: boolean, message: string }>}
+   */
+  async simulateChildGoalAndNotifyParent(openModal = true) {
+    this.state.sessionStudySeconds = this.targetStudySeconds; // 900 秒 = 15 分钟
+    this.state.sessionQuestionsAnswered = 20;
+    this.state.sessionQuestionsCorrect = 20; // 100% 正确率
+    this.state.isRewardUnlocked = true;
+    this.state.isRewardActive = false;
+    this.saveState();
+
+    this.updateStatusWidgets();
+
+    // 播放胜利号角与五彩纸屑
+    if (window.audioEngine) {
+      window.audioEngine.playScreenTimeRewardFanfare();
+    }
+    if (window.celebrationFx) {
+      window.celebrationFx.burst(window.innerWidth / 2, window.innerHeight / 2, 60);
+    }
+    if (window.mascotPipi) {
+      window.mascotPipi.speak('🎉 模拟达标成功！正在向爸爸妈妈手机推送解锁申请！');
+    }
+
+    // 立即向家长手机发送推送
+    let pushRes = { success: false, message: '未开启 Webhook 手机推送' };
+    if (this.state.enableWebhook && this.state.webhookKey) {
+      pushRes = await this.sendWebhookNotification('reward_unlocked', { isSimulation: true });
+    }
+
+    if (openModal) {
+      this.hideRewardStatusModal();
+      this.showRewardReadyModal();
+    }
+
+    return pushRes;
   }
 
   // ==========================================
@@ -735,6 +789,10 @@ class ScreenTimeLockController {
             <button id="btn-claim-reward-now-action" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 active:scale-95 text-white font-black text-base py-3.5 rounded-2xl shadow-xl transition cursor-pointer">
               🎉 立即开启 15 分钟 iPad 奖励！
             </button>
+            <button id="btn-status-push-parent-unlock" class="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-extrabold text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center space-x-1.5 active:scale-95">
+              <span>📲</span>
+              <span id="btn-status-push-parent-text">向家长手机推送「申请解锁」通知</span>
+            </button>
             <button id="btn-close-reward-status-modal" class="w-full text-xs text-neutral-500 hover:text-neutral-700 py-1.5 cursor-pointer font-bold">
               稍后领取
             </button>
@@ -807,7 +865,11 @@ class ScreenTimeLockController {
           </div>
 
           <div class="space-y-2 pt-1">
-            <button id="btn-parent-manual-reward" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 active:scale-95 text-white font-black text-sm py-2.5 px-4 rounded-xl shadow-md flex items-center justify-center gap-1.5 transition cursor-pointer">
+            <button id="btn-test-simulate-goal-action" class="w-full bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 hover:from-teal-600 active:scale-95 text-white font-black text-xs py-2.5 px-4 rounded-xl shadow-md flex items-center justify-center gap-1.5 transition cursor-pointer">
+              <span>🎯</span>
+              <span>【测试按钮】模拟孩子达标并推送家长解锁</span>
+            </button>
+            <button id="btn-parent-manual-reward" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 active:scale-95 text-white font-black text-xs py-2.5 px-4 rounded-xl shadow-md flex items-center justify-center gap-1.5 transition cursor-pointer">
               <span>🔑 家长密码一键直接发放奖励</span>
             </button>
             <button id="btn-close-reward-status-modal" class="w-full bg-white hover:bg-neutral-100 active:scale-95 text-neutral-700 font-extrabold text-xs py-2 rounded-xl border border-neutral-200 transition cursor-pointer">
@@ -832,6 +894,36 @@ class ScreenTimeLockController {
       claimNowBtn.onclick = (e) => {
         e.preventDefault();
         this.claimReward(true);
+      };
+    }
+
+    const testSimulateBtn = modal.querySelector('#btn-test-simulate-goal-action');
+    if (testSimulateBtn) {
+      testSimulateBtn.onclick = async (e) => {
+        e.preventDefault();
+        await this.simulateChildGoalAndNotifyParent(true);
+      };
+    }
+
+    const pushParentBtn = modal.querySelector('#btn-status-push-parent-unlock');
+    if (pushParentBtn) {
+      pushParentBtn.onclick = async (e) => {
+        e.preventDefault();
+        const textEl = modal.querySelector('#btn-status-push-parent-text');
+        if (textEl) textEl.innerText = '正在向家长手机推送...';
+        const res = await this.sendWebhookNotification('reward_unlocked');
+        if (textEl) {
+          if (res.success) {
+            textEl.innerText = '✅ 已成功推送到家长手机！';
+            if (window.audioEngine) window.audioEngine.playSuccess();
+          } else {
+            textEl.innerText = '❌ 推送失败：' + (res.message || '请检查配置');
+            if (window.audioEngine) window.audioEngine.playGentleOops();
+          }
+          setTimeout(() => {
+            if (textEl) textEl.innerText = '向家长手机推送「申请解锁」通知';
+          }, 3500);
+        }
       };
     }
 
