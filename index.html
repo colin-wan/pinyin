@@ -595,6 +595,7 @@
                 🔑 Bark 设备 Key 或完整 API 地址：
               </label>
               <input type="text" id="parent-webhook-key" class="w-full text-xs border border-neutral-300 rounded-xl px-3 py-2 font-mono bg-white" placeholder="例如：https://api.day.app/你的Key/ 或直接输入Key">
+              <div id="bark-key-preview" class="text-[11px] font-bold mt-1 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 hidden"></div>
               <p id="parent-webhook-key-hint" class="text-[10px] text-neutral-400 leading-normal">
                 在 iPhone App Store 搜索下载「Bark」，打开后复制主页的专属链接或 Key 粘贴到此处即可。
               </p>
@@ -624,7 +625,11 @@
               <div class="flex items-center space-x-2">
                 <button id="btn-test-webhook" type="button" class="flex-1 bg-white hover:bg-neutral-100 active:scale-95 text-neutral-700 border border-neutral-300 font-extrabold text-xs py-2 rounded-xl transition cursor-pointer flex items-center justify-center space-x-1">
                   <span>📲</span>
-                  <span id="btn-test-webhook-text">网络连通性测试</span>
+                  <span id="btn-test-webhook-text">常规连通测试</span>
+                </button>
+                <button id="btn-open-bark-direct-test" type="button" class="flex-1 bg-sky-50 hover:bg-sky-100 active:scale-95 text-sky-800 border border-sky-300 font-extrabold text-xs py-2 rounded-xl transition cursor-pointer flex items-center justify-center space-x-1" title="在浏览器新窗口打开官方推送接口进行诊断">
+                  <span>🔗</span>
+                  <span>新窗口直连诊断</span>
                 </button>
               </div>
             </div>

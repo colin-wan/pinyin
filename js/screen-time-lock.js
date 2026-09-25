@@ -403,6 +403,53 @@ class ScreenTimeLockController {
   }
 
   /**
+   * 智能解析 Bark 设备 Key 与服务器地址（兼容完整URL、带占位符后缀的URL、带查询参数URL或纯Key）
+   * @param {string} input - 用户输入的文本
+   * @returns {{ server: string, deviceKey: string }}
+   */
+  parseBarkConfig(input) {
+    let str = (input || '').trim();
+    if (!str) return { server: 'https://api.day.app', deviceKey: '' };
+
+    // 清除外围可能的多余符号（例如中英文引号、尖括号、反引号、括号等）
+    str = str.replace(/^[\s'"`<（【(\[]+|[\s'"`>）】)\]]+$/g, '').trim();
+
+    let server = 'https://api.day.app';
+    let deviceKey = '';
+
+    // 1. 如果包含 query 参数中的 device_key 或 key
+    const queryMatch = str.match(/[?&](?:device_key|key)=([a-zA-Z0-9_-]+)/);
+    if (queryMatch) {
+      deviceKey = queryMatch[1];
+      const domainMatch = str.match(/^(https?:\/\/[^\/?#]+)/);
+      if (domainMatch) server = domainMatch[1];
+      return { server, deviceKey };
+    }
+
+    // 2. 如果是完整 URL 格式
+    if (str.startsWith('http://') || str.startsWith('https://')) {
+      const match = str.match(/^(https?:\/\/[^\/?#]+)(?:\/([a-zA-Z0-9_-]+))?/);
+      if (match) {
+        server = match[1];
+        if (match[2] && match[2].toLowerCase() !== 'push') {
+          deviceKey = match[2];
+        }
+      }
+    } else {
+      // 3. 纯 Key 或带前缀 Key（例如 "key: xxx" 或 "设备Key: xxx"）
+      const extractKey = str.match(/([a-zA-Z0-9_-]{10,})/);
+      if (extractKey) {
+        deviceKey = extractKey[1];
+      } else {
+        const simpleKey = str.match(/^([a-zA-Z0-9_-]+)/);
+        if (simpleKey) deviceKey = simpleKey[1];
+      }
+    }
+
+    return { server, deviceKey };
+  }
+
+  /**
    * 发送 Webhook 远程通知（支持 Bark、Server酱、自定义 Webhook）
    * @param {'reward_unlocked' | 'reward_expired' | 'test'} eventType - 事件类型
    * @param {object} extraData - 附加参数
@@ -413,7 +460,7 @@ class ScreenTimeLockController {
       return { success: false, message: '未开启手机通知 (Webhook)' };
     }
 
-    if (eventType === 'reward_unlocked' && this.state.webhookNotifyOnReward === false) {
+    if (eventType === 'reward_unlocked' && this.state.webhookNotifyOnReward === false && !extraData.isSimulation) {
       return { success: false, message: '已关闭“达标领奖时”推送' };
     }
     if (eventType === 'reward_expired' && this.state.webhookNotifyOnExpire === false) {
@@ -441,7 +488,7 @@ class ScreenTimeLockController {
     } else if (eventType === 'reward_unlocked') {
       const isSim = extraData && extraData.isSimulation;
       title = isSim ? '🎯【测试】宝贝拼音学习达标！申请解锁 15 分钟 iPad 时间' : '🎉 宝贝拼音学习达标！申请解锁 15 分钟 iPad 时间';
-      body = `宝贝已认真学满 ${studyMin} 分钟，答对 ${correct}/${answered} 题（正确率 ${accuracy}%）！请在手机「屏幕使用时间」中为孩子批准 15 分钟娱乐时长！`;
+      body = `宝贝已认真学满 ${studyMin} 分钟，答对 ${correct} 题（共 ${answered} 题，正确率 ${accuracy}%）！请在手机「屏幕使用时间」中为孩子批准 15 分钟娱乐时长！`;
     } else if (eventType === 'reward_expired') {
       title = '⏳ 15分钟 iPad 娱乐时间已结束';
       body = '奖励倒计时已归零，iPad 拼音学习网站已自动恢复全屏锁定。请提醒宝贝休息或开启新一轮挑战！';
@@ -450,45 +497,102 @@ class ScreenTimeLockController {
     // 防作弊统计概要
     let antiCheatSummary = '';
     if (window.antiCheat) {
-      antiCheatSummary = `（平均思考: ${window.antiCheat.getAverageAnswerTimeStr()}，乱点拦截: ${window.antiCheat.stats.spamBlocked}次）`;
+      antiCheatSummary = `（平均思考: ${window.antiCheat.getAverageAnswerTimeStr()}，拦截刷题: ${window.antiCheat.stats.spamBlocked}次）`;
     }
 
     try {
       if (platform === 'bark') {
-        let barkUrl = rawKey;
-        if (!barkUrl.startsWith('http://') && !barkUrl.startsWith('https://')) {
-          barkUrl = `https://api.day.app/${barkUrl}`;
+        const { server, deviceKey } = this.parseBarkConfig(rawKey);
+        if (!deviceKey) {
+          return {
+            success: false,
+            message: '未能识别出有效的 Bark 设备 Key！请粘贴手机 Bark App 主页的完整链接或纯 Key。'
+          };
         }
-        barkUrl = barkUrl.replace(/\/+$/, '');
 
-        const postData = {
-          title: title,
-          body: body + (antiCheatSummary ? '\n' + antiCheatSummary : ''),
-          group: '拼音学习',
-          sound: eventType === 'reward_unlocked' ? 'minuet.caf' : (eventType === 'reward_expired' ? 'alarm.caf' : 'bell.caf'),
-          icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135768.png',
-          level: 'active',
-          badge: 1
-        };
+        // 清理文本中的特殊符号与百分号，防止 URL 路径拆分及解码异常
+        const cleanTitle = title.replace(/[\/\\#?&%\r\n]/g, ' ').trim();
+        const cleanBody = (body + (antiCheatSummary ? ' ' + antiCheatSummary : '')).replace(/[\/\\#?&%\r\n]/g, ' ').trim();
+        const sound = eventType === 'reward_unlocked' ? 'minuet.caf' : (eventType === 'reward_expired' ? 'alarm.caf' : 'bell.caf');
 
+        // 构建 Bark 规范排查直链（供用户在新标签页一键诊断）
+        const directTestUrl = `${server}/${deviceKey}/${encodeURIComponent('拼音打卡测试')}/${encodeURIComponent('Bark推送配置成功！手机已收到通知。')}?sound=${sound}&group=${encodeURIComponent('拼音学习')}`;
+        const queryUrl = `${server}/${deviceKey}?title=${encodeURIComponent(cleanTitle)}&body=${encodeURIComponent(cleanBody)}&sound=${sound}&group=${encodeURIComponent('拼音学习')}&level=timeSensitive`;
+
+        // 通道 1：官方 POST /push 接口（尝试标准 JSON）
         try {
-          const res = await fetch(`${barkUrl}`, {
+          const postRes = await fetch(`${server}/push`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(postData)
+            body: JSON.stringify({
+              device_key: deviceKey,
+              title: cleanTitle,
+              body: cleanBody,
+              sound: sound,
+              group: '拼音学习',
+              badge: 1,
+              icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135768.png',
+              level: 'timeSensitive'
+            })
           });
-          if (res.ok) {
-            const data = await res.json().catch(() => ({}));
-            return { success: true, message: 'Bark 推送成功，已发送至 iPhone！', data };
+
+          const data = await postRes.json().catch(() => ({}));
+          if (postRes.ok && data.code === 200) {
+            return {
+              success: true,
+              message: 'Bark 官方推送成功，已发送至 iPhone！',
+              data,
+              testUrl: directTestUrl,
+              deviceKey
+            };
+          } else if (data.message && data.message.includes('failed to get') && data.message.includes('device token')) {
+            return {
+              success: false,
+              message: `Bark 服务器找不到设备 Key【${deviceKey}】。请核对手机 Bark App 主页的 Key 是否完全一致。`,
+              testUrl: directTestUrl,
+              deviceKey
+            };
           }
-        } catch (postErr) {
-          console.warn('Bark POST failed, trying GET fallback...', postErr);
+        } catch (fetchErr) {
+          // 浏览器跨域预检拦截是正常现象，继续执行通道 2、3、4
         }
 
-        // GET 回退通道（兼容所有版本的 Bark）
-        const getUrl = `${barkUrl}/${encodeURIComponent(title)}/${encodeURIComponent(body)}?group=${encodeURIComponent('拼音学习')}&sound=${postData.sound}`;
-        await fetch(getUrl, { method: 'GET', mode: 'no-cors' });
-        return { success: true, message: 'Bark 推送请求已成功发出！' };
+        // 通道 2：application/x-www-form-urlencoded POST（CORS 简单请求，绝无 preflight 拦截）
+        try {
+          const formParams = new URLSearchParams();
+          formParams.append('title', cleanTitle);
+          formParams.append('body', cleanBody);
+          formParams.append('sound', sound);
+          formParams.append('group', '拼音学习');
+          formParams.append('level', 'timeSensitive');
+          formParams.append('badge', '1');
+
+          fetch(`${server}/${deviceKey}`, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formParams.toString()
+          }).catch(() => {});
+        } catch (e) {}
+
+        // 通道 3：GET Query 模式（完全避免路径分段拆分问题）
+        try {
+          fetch(queryUrl, { method: 'GET', mode: 'no-cors' }).catch(() => {});
+        } catch (e) {}
+
+        // 通道 4：Image Beacon 兜底触发（利用浏览器原生图片请求穿透一切限制）
+        try {
+          const img = new Image();
+          img.src = `${queryUrl}&_t=${Date.now()}`;
+        } catch (e) {}
+
+        return {
+          success: true,
+          message: `Bark 推送指令已成功发出（设备 Key: ${deviceKey}）。`,
+          testUrl: directTestUrl,
+          deviceKey,
+          isBeacon: true
+        };
       } else if (platform === 'serverchan') {
         let sendKey = rawKey;
         const match = rawKey.match(/SCT[0-9a-zA-Z]+/);

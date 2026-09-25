@@ -1283,6 +1283,33 @@ class PinyinApp {
       }
     });
 
+    this.updateBarkKeyPreview = () => {
+      const val = document.getElementById('parent-webhook-key')?.value || '';
+      const previewEl = document.getElementById('bark-key-preview');
+      if (!previewEl) return;
+      const platform = document.getElementById('parent-webhook-platform')?.value;
+      if (platform !== 'bark' || !val.trim()) {
+        previewEl.classList.add('hidden');
+        return;
+      }
+      previewEl.classList.remove('hidden');
+      if (window.screenTimeLock && window.screenTimeLock.parseBarkConfig) {
+        const { server, deviceKey } = window.screenTimeLock.parseBarkConfig(val);
+        if (deviceKey) {
+          const directUrl = `${server}/${deviceKey}/${encodeURIComponent('拼音打卡测试')}/${encodeURIComponent('新窗口直连测试成功！Bark通知正常。')}?sound=minuet.caf&group=${encodeURIComponent('拼音学习')}`;
+          previewEl.className = 'text-[11px] font-bold mt-1 text-emerald-800 bg-emerald-100/90 px-2.5 py-1 rounded-lg border border-emerald-300 inline-flex items-center flex-wrap gap-1';
+          previewEl.innerHTML = `✓ 已识别有效设备 Key: <code class="font-mono bg-white px-1 py-0.5 rounded text-emerald-950">${deviceKey}</code> <span class="text-[10px] text-emerald-600">(${server.replace(/^https?:\/\//, '')})</span> <a href="${directUrl}" target="_blank" class="ml-1 underline font-bold text-sky-700 hover:text-sky-900">🔗 新标签页快速验证</a>`;
+        } else {
+          previewEl.className = 'text-[11px] font-bold mt-1 text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200 inline-block';
+          previewEl.innerHTML = `⚠️ 未能识别出设备 Key，请粘贴手机 Bark App 主页的完整链接或 Key`;
+        }
+      }
+    };
+
+    document.getElementById('parent-webhook-key')?.addEventListener('input', () => {
+      if (this.updateBarkKeyPreview) this.updateBarkKeyPreview();
+    });
+
     document.getElementById('parent-webhook-toggle')?.addEventListener('change', (e) => {
       if (window.screenTimeLock) {
         window.screenTimeLock.state.enableWebhook = e.target.checked;
@@ -1290,7 +1317,7 @@ class PinyinApp {
       }
     });
 
-    document.getElementById('parent-webhook-key')?.addEventListener('input', (e) => {
+    document.getElementById('parent-webhook-key')?.addEventListener('change', (e) => {
       if (window.screenTimeLock) {
         window.screenTimeLock.state.webhookKey = e.target.value.trim();
         window.screenTimeLock.saveState();
@@ -1308,6 +1335,57 @@ class PinyinApp {
       if (window.screenTimeLock) {
         window.screenTimeLock.state.webhookNotifyOnExpire = e.target.checked;
         window.screenTimeLock.saveState();
+      }
+    });
+
+    // 新窗口直连诊断按钮
+    document.getElementById('btn-open-bark-direct-test')?.addEventListener('click', () => {
+      if (!window.screenTimeLock) return;
+      const keyInput = document.getElementById('parent-webhook-key');
+      const feedbackEl = document.getElementById('webhook-test-feedback');
+      const keyVal = keyInput?.value?.trim() || '';
+
+      if (!keyVal) {
+        if (feedbackEl) {
+          feedbackEl.className = 'p-3 rounded-xl border text-xs font-bold transition bg-rose-50 border-rose-200 text-rose-900';
+          feedbackEl.innerHTML = '⚠️ 请先输入 Bark Key 或完整 API 地址！';
+        }
+        keyInput?.focus();
+        return;
+      }
+
+      const { server, deviceKey } = window.screenTimeLock.parseBarkConfig(keyVal);
+      if (!deviceKey) {
+        if (feedbackEl) {
+          feedbackEl.className = 'p-3 rounded-xl border text-xs font-bold transition bg-rose-50 border-rose-200 text-rose-900';
+          feedbackEl.innerHTML = '⚠️ 未能识别出设备 Key，请粘贴手机 Bark App 主页的完整链接或 Key';
+        }
+        keyInput?.focus();
+        return;
+      }
+
+      // 构造极简测试链接，完全规避中文路径拆分及跨域拦截
+      const directUrl = `${server}/${deviceKey}/${encodeURIComponent('拼音打卡测试')}/${encodeURIComponent('新窗口直连测试成功！Bark通知正常。')}?sound=minuet.caf&group=${encodeURIComponent('拼音学习')}`;
+
+      // 打开新窗口进行官方原生请求
+      window.open(directUrl, '_blank');
+
+      if (feedbackEl) {
+        feedbackEl.className = 'p-3 rounded-xl border text-xs font-medium space-y-1.5 transition bg-sky-50 border-sky-200 text-sky-900';
+        feedbackEl.innerHTML = `
+          <div class="font-extrabold flex items-center space-x-1">
+            <span>🔗</span>
+            <span>已在新标签页打开 Bark 官方接口直连诊断！</span>
+          </div>
+          <div class="text-[11px] text-sky-950 space-y-1 leading-relaxed">
+            <p>请查看新标签页的返回内容以快速排查：</p>
+            <div class="bg-white/80 p-2.5 rounded-lg border border-sky-100 text-[10.5px] space-y-1">
+              <div>• 若显示 <code class="font-mono bg-emerald-50 text-emerald-800 px-1 py-0.5 rounded border border-emerald-200">"code":200,"message":"success"</code>：说明网络和 Key <strong>100% 正确！</strong> 若手机未响铃，请检查 iPhone「设置」➔「通知」➔「Bark」是否开启允许通知，或关闭「勿扰模式」。</div>
+              <div>• 若显示 <code class="font-mono bg-rose-50 text-rose-800 px-1 py-0.5 rounded border border-rose-200">failed to get [...] device token</code>：说明 Key 输错了，请重新在 iPhone 打开 Bark 复制主页 Key。</div>
+              <div>• 若页面无法打开/连接超时：说明当前网络无法直连 Bark 境外服务器，强烈建议在上方切换为【Server酱(微信推送)】！</div>
+            </div>
+          </div>
+        `;
       }
     });
 
@@ -1357,6 +1435,14 @@ class PinyinApp {
             <div class="text-[11px] text-emerald-800">
               请检查您的手机（iPhone 通知中心 / Apple Watch 振动 / 微信服务号聊天窗口），确认是否收到测试消息。
             </div>
+            ${res.testUrl ? `
+              <div class="pt-2 border-t border-emerald-200/80 mt-1.5 flex items-center justify-between">
+                <span class="text-[10px] text-neutral-500">排查与快速测试：</span>
+                <a href="${res.testUrl}" target="_blank" class="underline font-bold text-sky-700 hover:text-sky-900 text-xs">
+                  👉 点击直接在浏览器中打开此推送验证
+                </a>
+              </div>
+            ` : ''}
           `;
           if (window.audioEngine) window.audioEngine.playSuccess();
         } else {
@@ -1367,8 +1453,16 @@ class PinyinApp {
               <span>发送失败：${res.message}</span>
             </div>
             <div class="text-[11px] text-rose-700">
-              请检查 Key 或 URL 是否复制完整无误，以及网络连接是否通畅。
+              请核对 Key 或 URL 是否与手机 Bark App 一致。
             </div>
+            ${res.testUrl ? `
+              <div class="pt-2 border-t border-rose-200/80 mt-1.5 flex items-center justify-between">
+                <span class="text-[10px] text-rose-600">排查连接：</span>
+                <a href="${res.testUrl}" target="_blank" class="underline font-bold text-rose-800 hover:text-rose-950 text-xs">
+                  👉 点击直接在浏览器新标签页测试 Bark 返回的详情
+                </a>
+              </div>
+            ` : ''}
           `;
           if (window.audioEngine) window.audioEngine.playGentleOops();
         }
@@ -1423,6 +1517,14 @@ class PinyinApp {
               <strong>已发送内容</strong>：<em>“🎉 宝贝拼音学习达标！申请解锁 15 分钟 iPad 时间”</em>。<br>
               请查看您的手机（iPhone / Apple Watch / 微信）接收效果。返回 iPad 页面即可看到“达标已解锁”动画！
             </div>
+            ${res.testUrl ? `
+              <div class="pt-2 border-t border-emerald-200/80 mt-1.5 flex items-center justify-between">
+                <span class="text-[10px] text-neutral-500">排查与快速测试：</span>
+                <a href="${res.testUrl}" target="_blank" class="underline font-bold text-sky-700 hover:text-sky-900 text-xs">
+                  👉 点击直接在浏览器中打开此推送验证
+                </a>
+              </div>
+            ` : ''}
           `;
           if (window.audioEngine) window.audioEngine.playSuccess();
         } else {
@@ -1435,6 +1537,14 @@ class PinyinApp {
             <div class="text-[11px] text-rose-700">
               请检查推送 Key 是否正确，以及网络连接是否正常。
             </div>
+            ${res.testUrl ? `
+              <div class="pt-2 border-t border-rose-200/80 mt-1.5 flex items-center justify-between">
+                <span class="text-[10px] text-rose-600">排查连接：</span>
+                <a href="${res.testUrl}" target="_blank" class="underline font-bold text-rose-800 hover:text-rose-950 text-xs">
+                  👉 点击直接在浏览器新标签页测试 Bark 返回的详情
+                </a>
+              </div>
+            ` : ''}
           `;
           if (window.audioEngine) window.audioEngine.playGentleOops();
         }
@@ -1615,6 +1725,10 @@ class PinyinApp {
 
       const whNotifyExpire = document.getElementById('parent-webhook-notify-expire');
       if (whNotifyExpire) whNotifyExpire.checked = window.screenTimeLock.state.webhookNotifyOnExpire !== false;
+
+      if (this.updateBarkKeyPreview) {
+        this.updateBarkKeyPreview();
+      }
 
       const whFeedback = document.getElementById('webhook-test-feedback');
       if (whFeedback) {
