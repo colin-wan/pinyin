@@ -59,6 +59,10 @@ class AppState {
 
   startStudyTimer() {
     setInterval(() => {
+      // 防切屏与防后台挂机机制
+      if (document.hidden || (window.antiCheat && !window.antiCheat.isTabActive)) {
+        return;
+      }
       this.data.studySecondsToday += 1;
       // 每 30 秒自动存储
       if (this.data.studySecondsToday % 30 === 0) {
@@ -81,6 +85,9 @@ class AppState {
   }
 
   addStars(count = 1) {
+    if (window.antiCheat && !window.antiCheat.verifyStarGain(count)) {
+      return;
+    }
     this.data.stars += count;
     this.saveData();
     const starEl = document.getElementById('top-bar-stars');
@@ -909,6 +916,10 @@ class PinyinApp {
       }
     });
 
+    if (window.antiCheat) {
+      window.antiCheat.markQuestionStart(400);
+    }
+
     // 自动朗读一次题目声音 (真人录音母带)
     this.quizAudioTimer = setTimeout(() => {
       if (window.audioEngine && curQ.sound) {
@@ -921,6 +932,15 @@ class PinyinApp {
     stage.querySelectorAll('.quiz-option-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         if (this.quizAnswerLocked) return;
+
+        if (window.antiCheat && !window.antiCheat.canAnswer(btn)) {
+          return;
+        }
+
+        if (window.antiCheat) {
+          window.antiCheat.recordAnswerTime();
+        }
+
         this.quizAnswerLocked = true;
         if (this.quizAudioTimer) clearTimeout(this.quizAudioTimer);
 
@@ -945,6 +965,9 @@ class PinyinApp {
           }, 850);
         } else {
           // 答错
+          if (window.antiCheat) {
+            window.antiCheat.recordMistake();
+          }
           if (window.screenTimeLock) {
             window.screenTimeLock.recordAnswer(false);
           }

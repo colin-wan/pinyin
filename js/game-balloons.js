@@ -80,6 +80,10 @@ class BalloonGame {
     const randomIndex = Math.floor(Math.random() * this.lettersPool.length);
     this.target = this.lettersPool[randomIndex];
 
+    if (window.antiCheat) {
+      window.antiCheat.markQuestionStart(400);
+    }
+
     this.playTargetAudio();
     this.spawnBalloons();
   }
@@ -146,6 +150,14 @@ class BalloonGame {
   handleBalloonTap(letter, balloonEl) {
     if (!this.isPlaying || this.tapLocked) return;
 
+    if (window.antiCheat && !window.antiCheat.canAnswer(balloonEl)) {
+      return;
+    }
+
+    if (window.antiCheat) {
+      window.antiCheat.recordAnswerTime();
+    }
+
     if (letter === this.target) {
       // 戳对啦！防重点击
       this.tapLocked = true;
@@ -188,7 +200,10 @@ class BalloonGame {
         }, 900);
       }
     } else {
-      // 戳错啦，温和抖动并以真人母带读出戳错的音，再回放正确音
+      // 戳错啦，上报防作弊引擎记录连错防穷举
+      if (window.antiCheat) {
+        window.antiCheat.recordMistake();
+      }
       if (window.screenTimeLock) {
         window.screenTimeLock.recordAnswer(false);
       }

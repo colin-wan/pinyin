@@ -165,6 +165,10 @@ class WhackPinyinGame {
     this.currentQ = this.questionBank[Math.floor(Math.random() * this.questionBank.length)];
     this.targetPinyin = this.currentQ.target;
 
+    if (window.antiCheat) {
+      window.antiCheat.markQuestionStart(400);
+    }
+
     // 保持提示为纯净重播按钮，杜绝文字泄题
     const labelBtn = this.container.querySelector('#whack-target-label');
     if (labelBtn) {
@@ -241,6 +245,14 @@ class WhackPinyinGame {
   hitHole(holeIdx, holeEl) {
     if (!this.roundActive) return;
 
+    if (window.antiCheat && !window.antiCheat.canAnswer(holeEl)) {
+      return;
+    }
+
+    if (window.antiCheat) {
+      window.antiCheat.recordAnswerTime();
+    }
+
     const moleEl = this.container.querySelector(`#mole-${holeIdx}`);
     if (!moleEl) return;
 
@@ -296,6 +308,9 @@ class WhackPinyinGame {
       }
 
     } else {
+      if (window.antiCheat) {
+        window.antiCheat.recordMistake();
+      }
       // 敲错了
       this.playOopsSound();
       moleEl.style.transform = 'translateY(150px)';

@@ -144,6 +144,9 @@ class ConfusionDiffGame {
     const curPair = this.pairs[this.pairIndex];
     const targetIdx = Math.floor(Math.random() * curPair.items.length);
     this.targetItem = curPair.items[targetIdx];
+    if (window.antiCheat) {
+      window.antiCheat.markQuestionStart(400);
+    }
     setTimeout(() => {
       this.playTargetAudio();
     }, 350);
@@ -158,6 +161,15 @@ class ConfusionDiffGame {
 
   handleChoice(chosenChar, btnEl) {
     if (!this.targetItem || this.choiceLocked) return;
+
+    if (window.antiCheat && !window.antiCheat.canAnswer(btnEl)) {
+      return;
+    }
+
+    if (window.antiCheat) {
+      window.antiCheat.recordAnswerTime();
+    }
+
     this.choiceLocked = true;
 
     if (chosenChar === this.targetItem.text) {
@@ -202,6 +214,9 @@ class ConfusionDiffGame {
         }, 1100);
       }
     } else {
+      if (window.antiCheat) {
+        window.antiCheat.recordMistake();
+      }
       // 答错啦，播放温和提示音，并播放所点字母的真人录音
       if (window.screenTimeLock) {
         window.screenTimeLock.recordAnswer(false);

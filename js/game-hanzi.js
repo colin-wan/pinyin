@@ -225,6 +225,7 @@ class HanziPinyinGameHub {
     if (card.matched) return;
 
     const cardElem = document.getElementById(`card-elem-${index}`);
+    if (window.antiCheat && !window.antiCheat.canAnswer(cardElem)) return;
 
     // 发音：朗读该汉字或拼音 (真人母带优先，杜绝多余机械朗读)
     if (window.audioEngine) {
@@ -313,6 +314,9 @@ class HanziPinyinGameHub {
       }
     } else {
       // 配对失败
+      if (window.antiCheat) {
+        window.antiCheat.recordMistake();
+      }
       this.streak = 0;
       this.updateScoreBar();
 
@@ -357,6 +361,9 @@ class HanziPinyinGameHub {
     options.sort(() => Math.random() - 0.5);
 
     this.currentQuestion = { target, options };
+    if (window.antiCheat) {
+      window.antiCheat.markQuestionStart(400);
+    }
 
     stage.innerHTML = `
       <div class="w-full max-w-xl mx-auto space-y-6 text-center">
@@ -415,6 +422,15 @@ class HanziPinyinGameHub {
           clearTimeout(this.quizAutoPlayTimer);
         }
         if (isAnswering) return;
+
+        if (window.antiCheat && !window.antiCheat.canAnswer(e.currentTarget)) {
+          return;
+        }
+
+        if (window.antiCheat) {
+          window.antiCheat.recordAnswerTime();
+        }
+
         const chosen = e.currentTarget.dataset.opt;
         const isCorrect = chosen === target.pinyin;
 
@@ -466,6 +482,9 @@ class HanziPinyinGameHub {
             }, 850);
           }
         } else {
+          if (window.antiCheat) {
+            window.antiCheat.recordMistake();
+          }
           e.currentTarget.classList.add('bg-rose-100', 'border-rose-400', 'animate-shake');
           this.streak = 0;
           this.updateScoreBar();
@@ -507,6 +526,10 @@ class HanziPinyinGameHub {
 
     const apples = [target, distractors[0], distractors[1], distractors[2]];
     apples.sort(() => Math.random() - 0.5);
+
+    if (window.antiCheat) {
+      window.antiCheat.markQuestionStart(400);
+    }
 
     stage.innerHTML = `
       <div class="w-full max-w-2xl mx-auto space-y-5 text-center">
@@ -558,6 +581,15 @@ class HanziPinyinGameHub {
     stage.querySelectorAll('.apple-fruit-btn').forEach(elem => {
       elem.addEventListener('click', (e) => {
         if (isAnswering) return;
+
+        if (window.antiCheat && !window.antiCheat.canAnswer(e.currentTarget)) {
+          return;
+        }
+
+        if (window.antiCheat) {
+          window.antiCheat.recordAnswerTime();
+        }
+
         const chosenChar = e.currentTarget.dataset.char;
         const isCorrect = chosenChar === target.char;
 
@@ -609,6 +641,9 @@ class HanziPinyinGameHub {
             }, 850);
           }
         } else {
+          if (window.antiCheat) {
+            window.antiCheat.recordMistake();
+          }
           this.streak = 0;
           this.updateScoreBar();
 

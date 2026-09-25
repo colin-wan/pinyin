@@ -119,9 +119,10 @@ class ScreenTimeLockController {
         return;
       }
 
-      // 3. 学习时间累加：防挂机机制（如果超过60秒无任何点击交互，暂停计时）
+      // 3. 学习时间累加：防挂机机制与防切屏后台挂机机制
+      const isHidden = document.hidden || (window.antiCheat && !window.antiCheat.isTabActive);
       const isIdle = (Date.now() - this.lastInteractionTime) > 60000;
-      if (!isIdle) {
+      if (!isIdle && !isHidden) {
         this.state.sessionStudySeconds += 1;
       }
 
@@ -155,9 +156,19 @@ class ScreenTimeLockController {
     const timeReached = this.state.sessionStudySeconds >= this.targetStudySeconds;
     const accuracy = this.getAccuracy();
     const reqAcc = this.getTargetAccuracy();
-    const accuracyReached = accuracy >= reqAcc && this.state.sessionQuestionsAnswered >= this.minQuestions;
+    const questionsAnswered = this.state.sessionQuestionsAnswered || 0;
+    const accuracyReached = accuracy >= reqAcc && questionsAnswered >= this.minQuestions;
 
-    if (timeReached && accuracyReached) {
+    // 【防作弊核验】：如果作答平均思考时长低于 1.0 秒，判定为脚本或恶意盲选，不允许通过作弊手段解锁屏幕时间奖励
+    let isCheatSuspicious = false;
+    if (window.antiCheat && window.antiCheat.stats.totalAnswerCount >= 10) {
+      const avgMs = window.antiCheat.stats.totalAnswerTimeMs / window.antiCheat.stats.totalAnswerCount;
+      if (avgMs < 1000) {
+        isCheatSuspicious = true;
+      }
+    }
+
+    if (timeReached && accuracyReached && !isCheatSuspicious) {
       this.state.isRewardUnlocked = true;
       this.saveState();
       this.notifyRewardReady();
@@ -609,6 +620,24 @@ class ScreenTimeLockController {
               <div class="w-full bg-neutral-200 h-2.5 rounded-full overflow-hidden">
                 <div class="${accuracy >= reqAccuracy ? 'bg-emerald-500' : 'bg-gradient-to-r from-amber-400 to-orange-500'} h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, accuracy)}%"></div>
               </div>
+            </div>
+          </div>
+
+          <!-- 防作弊实时检测与家长监督卡片 -->
+          <div class="bg-indigo-50/90 p-3.5 rounded-2xl border-2 border-indigo-200 text-xs space-y-1.5">
+            <div class="flex items-center justify-between font-black text-indigo-950">
+              <span class="flex items-center gap-1">
+                <span>🛡️ 防作弊与真实学习检测</span>
+              </span>
+              <span class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                ✓ 实时守护中
+              </span>
+            </div>
+            <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-neutral-600 text-[11px] pt-1 border-t border-indigo-100">
+              <div>🚫 乱点秒选拦截: <span class="font-extrabold text-amber-800">${window.antiCheat ? window.antiCheat.stats.spamBlocked : 0} 次</span></div>
+              <div>☝️ 多指抢按拦截: <span class="font-extrabold text-amber-800">${window.antiCheat ? window.antiCheat.stats.multiTouchBlocked : 0} 次</span></div>
+              <div>👀 切屏后台挂机: <span class="font-extrabold text-amber-800">${window.antiCheat ? window.antiCheat.stats.tabSwitchPaused : 0} 次</span></div>
+              <div>⏱️ 平均答题思考: <span class="font-extrabold text-emerald-700">${window.antiCheat ? window.antiCheat.getAverageAnswerTimeStr() : '计算中'}</span></div>
             </div>
           </div>
 

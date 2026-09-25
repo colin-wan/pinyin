@@ -168,6 +168,9 @@ class ToneRollercoasterGame {
 
   randomTarget() {
     this.targetToneIndex = Math.floor(Math.random() * 4);
+    if (window.antiCheat) {
+      window.antiCheat.markQuestionStart(400);
+    }
     setTimeout(() => {
       this.playTargetAudio();
     }, 400);
@@ -248,6 +251,15 @@ class ToneRollercoasterGame {
 
   handleToneSelect(selectedIdx) {
     if (this.isSelecting) return;
+
+    if (window.antiCheat && !window.antiCheat.canAnswer()) {
+      return;
+    }
+
+    if (window.antiCheat) {
+      window.antiCheat.recordAnswerTime();
+    }
+
     this.isSelecting = true;
 
     // 1. 彻底清除重音并播放所选声调的真人母带 MP3 发音
@@ -286,6 +298,9 @@ class ToneRollercoasterGame {
           }, 1100);
         }
       } else {
+        if (window.antiCheat) {
+          window.antiCheat.recordMistake();
+        }
         if (window.screenTimeLock) {
           window.screenTimeLock.recordAnswer(false);
         }
