@@ -159,36 +159,44 @@ class ConfusionDiffGame {
       if (window.screenTimeLock) {
         window.screenTimeLock.recordAnswer(true);
       }
+      if (window.celebrationFX) {
+        window.celebrationFX.registerCorrect(btnEl);
+      }
+      if (window.app && window.app.state) {
+        window.app.state.addStars(1);
+      }
       if (window.audioEngine) {
         window.audioEngine.stopAllAudio();
         window.audioEngine.playSuccess();
         setTimeout(() => {
           if (window.audioEngine) {
-            const sound = window.audioEngine.phoneticMap[chosenChar] || chosenChar;
-            window.audioEngine.speak(`太棒啦！认得很准，这是声母 ${sound}！`);
+            // 直接播放该声母纯正真人录音 (bo1.mp3, de1.mp3 等，杜绝机械合成)
+            window.audioEngine.speak(chosenChar);
           }
-        }, 200);
+        }, 180);
       }
       btnEl.classList.add('border-emerald-500', 'bg-emerald-50');
 
       setTimeout(() => {
         btnEl.classList.remove('border-emerald-500', 'bg-emerald-50');
         this.randomTarget();
-      }, 1500);
+      }, 1100);
     } else {
-      // 答错啦，针对性提示口诀
+      // 答错啦，播放温和提示音，并播放所点字母的真人录音
       if (window.screenTimeLock) {
         window.screenTimeLock.recordAnswer(false);
+      }
+      if (window.celebrationFX) {
+        window.celebrationFX.registerMistake();
       }
       if (window.audioEngine) {
         window.audioEngine.stopAllAudio();
         window.audioEngine.playGentleOops();
         setTimeout(() => {
           if (window.audioEngine) {
-            const sound = window.audioEngine.phoneticMap[chosenChar] || chosenChar;
-            window.audioEngine.speak(`这是声母 ${sound} 哦！口诀说：${this.pairs[this.pairIndex].ruleSong}`);
+            window.audioEngine.speak(chosenChar);
           }
-        }, 200);
+        }, 180);
       }
       btnEl.classList.add('border-rose-400', 'animate-shake');
       setTimeout(() => {

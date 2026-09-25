@@ -1,8 +1,9 @@
 /**
  * 游戏2：拼读小火车（解决“拼读连不起来”核心攻坚器）
  * 1. 动态呈现两车厢滑行靠近、碰撞合读的生动过程
- * 2. 严谨支持标准普通话合法音节与词汇图文联想
- * 3. 包含“慢速渐进带读”与“自由撞碰拼装”两大模式
+ * 2. 严格遵循普通话声韵配合表：非法组合碰撞不成功（弹回并给出教育性解释）
+ * 3. 严格遵循一年级统编教材：课本有的生字突出显示汉字与词组，课本无此生字仅显示纯拼音音节
+ * 4. 支持 ü 韵母与 j q x 拼写脱帽规则（j-ü -> ju）
  */
 
 class TrainBlenderGame {
@@ -15,21 +16,22 @@ class TrainBlenderGame {
     this.animWatchdog = null;
     this.stepTimer = null;
 
-    // 常用合法拼读组合库
-    this.blendDict = {
-      'b-a-4': { syllable: 'bà', word: '爸爸 bàba', icon: '👨', tip: 'b...à...bà 爸爸' },
-      'm-a-1': { syllable: 'mā', word: '妈妈 māma', icon: '👩', tip: 'm...ā...mā 妈妈' },
-      'd-a-3': { syllable: 'dǎ', word: '打靶 dǎ bǎ', icon: '🎯', tip: 'd...ǎ...dǎ 打靶' },
-      't-u-3': { syllable: 'tǔ', word: '土地 tǔ dì', icon: '🌱', tip: 't...ǔ...tǔ 土地' },
-      'p-o-1': { syllable: 'pō', word: '山坡 shānpō', icon: '⛰️', tip: 'p...ō...pō 山坡' },
-      'g-e-1': { syllable: 'gē', word: '哥哥 gēge', icon: '👦', tip: 'g...ē...gē 哥哥' },
-      'k-e-3': { syllable: 'kě', word: '口渴 kǒukě', icon: '🥛', tip: 'k...ě...kě 口渴' },
-      'h-e-1': { syllable: 'hē', word: '喝水 hēshuǐ', icon: '🥤', tip: 'h...ē...hē 喝水' },
-      'b-o-2': { syllable: 'bó', word: '伯伯 bóbo', icon: '👴', tip: 'b...ó...bó 伯伯' },
-      'n-i-2': { syllable: 'ní', word: '泥土 nítǔ', icon: '🪴', tip: 'n...í...ní 泥土' },
-      'l-u-4': { syllable: 'lù', word: '马路 mǎlù', icon: '🛣️', tip: 'l...ù...lù 马路' },
-      'q-i-2': { syllable: 'qí', word: '骑马 qímǎ', icon: '🐎', tip: 'q...í...qí 骑马' },
-      'x-i-1': { syllable: 'xī', word: '西瓜 xīguā', icon: '🍉', tip: 'x...ī...xī 西瓜' }
+    // 普通话合法声韵配合表（现代汉语权威音系规范与统编小学语文拼音教学要求）
+    this.legalCombos = {
+      b: ['a', 'o', 'i', 'u'],
+      p: ['a', 'o', 'i', 'u'],
+      m: ['a', 'o', 'e', 'i', 'u'],
+      f: ['a', 'o', 'u'],
+      d: ['a', 'e', 'i', 'u'],
+      t: ['a', 'e', 'i', 'u'],
+      n: ['a', 'e', 'i', 'u', 'ü'],
+      l: ['a', 'e', 'i', 'u', 'ü'],
+      g: ['a', 'e', 'u'],
+      k: ['a', 'e', 'u'],
+      h: ['a', 'e', 'u'],
+      j: ['i', 'ü'],
+      q: ['i', 'ü'],
+      x: ['i', 'ü']
     };
 
     this.initialOptions = ['b', 'p', 'm', 'f', 'd', 't', 'n', 'l', 'g', 'k', 'h', 'j', 'q', 'x'];
@@ -38,8 +40,84 @@ class TrainBlenderGame {
       { base: 'o', tones: ['ō', 'ó', 'ǒ', 'ò'] },
       { base: 'e', tones: ['ē', 'é', 'ě', 'è'] },
       { base: 'i', tones: ['ī', 'í', 'ǐ', 'ì'] },
-      { base: 'u', tones: ['ū', 'ú', 'ǔ', 'ù'] }
+      { base: 'u', tones: ['ū', 'ú', 'ǔ', 'ù'] },
+      { base: 'ü', tones: ['ǖ', 'ǘ', 'ǚ', 'ǜ'] }
     ];
+  }
+
+  /**
+   * 判断声母与韵母在普通话中是否为合法拼读组合
+   */
+  isValidCombo(initial, finalBase) {
+    const list = this.legalCombos[initial];
+    return list ? list.includes(finalBase) : false;
+  }
+
+  /**
+   * 生成非法组合的儿童友好拼音语音学指导提示
+   */
+  getInvalidReason(initial, finalBase) {
+    if (['j', 'q', 'x'].includes(initial)) {
+      if (finalBase === 'u') {
+        return `声母【${initial}】不和单韵母【u】相拼哦！\n“小ü见到 j q x，脱帽敬礼走过去”，想拼读请选择韵母【ü】！`;
+      }
+      return `声母【${initial}】是舌面前音，只能和【i】和【ü】相拼，不能和【${finalBase}】相拼哦！`;
+    }
+    if (['b', 'p', 'f'].includes(initial) && finalBase === 'e') {
+      return `声母【${initial}】不能和单韵母【e】相拼哦！换个韵母【a】或【o】试试吧！`;
+    }
+    if (initial === 'f' && finalBase === 'i') {
+      return `声母【f】不能和韵母【i】相拼哦！试试韵母【a】、【o】或【u】吧！`;
+    }
+    if (['d', 't', 'n', 'l'].includes(initial) && finalBase === 'o') {
+      return `声母【${initial}】不能直接和单韵母【o】相拼（需要加介母 u 变成 ${initial}uo 呢）！`;
+    }
+    if (['g', 'k', 'h'].includes(initial) && ['i', 'ü'].includes(finalBase)) {
+      return `声母【${initial}】不能和齐齿呼【i】或撮口呼【ü】相拼哦！试试【a】、【e】或【u】吧！`;
+    }
+    if (['g', 'k', 'h'].includes(initial) && finalBase === 'o') {
+      return `声母【${initial}】不能直接和单韵母【o】相拼（需要加介母 u 变成 ${initial}uo 呢）！`;
+    }
+    if (finalBase === 'ü' && !['n', 'l', 'j', 'q', 'x'].includes(initial)) {
+      return `韵母【ü】只能和 n、l、j、q、x 相拼，不能和声母【${initial}】相拼哦！`;
+    }
+    return `普通话中没有【${initial}】和【${finalBase}】的音节组合哦，换一个字母试试看！`;
+  }
+
+  /**
+   * 构造标准规范的拼音音节字符串 (支持 j q x 与 ü 结合脱帽)
+   */
+  constructSyllable(initial, finalBase, toneIdx) {
+    const curFinalObj = this.finalOptions.find(f => f.base === finalBase) || this.finalOptions[0];
+    const curToneChar = curFinalObj.tones[toneIdx] || curFinalObj.tones[0];
+
+    if (['j', 'q', 'x'].includes(initial) && finalBase === 'ü') {
+      // 规则：“小ü见到 j q x，脱帽敬个礼，摘掉帽子还读ü”，书写为 ju, qu, xu
+      const uTones = ['ū', 'ú', 'ǔ', 'ù'];
+      return `${initial}${uTones[toneIdx] || uTones[0]}`;
+    }
+    return `${initial}${curToneChar}`;
+  }
+
+  /**
+   * 检索一年级语文统编教材生字表 (如课本有则返回生字与组词，课本无则返回空数组)
+   */
+  getTextbookHanzi(initial, finalBase, toneIdx) {
+    const toneNum = toneIdx + 1;
+    const allData = (typeof window !== 'undefined' && window.TEXTBOOK_HANZI_DATA)
+      ? window.TEXTBOOK_HANZI_DATA
+      : (typeof TEXTBOOK_HANZI_DATA !== 'undefined' ? TEXTBOOK_HANZI_DATA : []);
+    return allData.filter(item => {
+      if (item.tone !== toneNum) return false;
+      if (item.initial !== initial) return false;
+      if (['j', 'q', 'x'].includes(initial)) {
+        if (finalBase === 'ü') {
+          return item.final === 'ü' || item.final === 'u';
+        }
+        return item.final === finalBase;
+      }
+      return item.final === finalBase;
+    });
   }
 
   render(preSelect = null) {
@@ -50,8 +128,21 @@ class TrainBlenderGame {
       this.currentFinal = preSelect.final || this.currentFinal;
     }
 
+    const isValid = this.isValidCombo(this.currentInitial, this.currentFinal);
     const curFinalObj = this.finalOptions.find(f => f.base === this.currentFinal) || this.finalOptions[0];
     const curToneChar = curFinalObj.tones[this.currentToneIndex] || curFinalObj.tones[0];
+    const syllable = this.constructSyllable(this.currentInitial, this.currentFinal, this.currentToneIndex);
+    const textbookMatches = isValid ? this.getTextbookHanzi(this.currentInitial, this.currentFinal, this.currentToneIndex) : [];
+
+    let initialTipHtml = '';
+    if (!isValid) {
+      initialTipHtml = `<span class="text-rose-600 font-extrabold flex items-center justify-center gap-1">⚠️ 提示：【${this.currentInitial}】与【${curToneChar}】不能相拼，相碰会弹开哦！</span>`;
+    } else if (textbookMatches.length > 0) {
+      const charsStr = textbookMatches.map(m => m.char).join('、');
+      initialTipHtml = `<span class="text-emerald-700 font-extrabold flex items-center justify-center gap-1">📖 课本生字：可拼出【${charsStr}】，点击小火车相碰吧！</span>`;
+    } else {
+      initialTipHtml = `<span class="text-amber-800 font-bold flex items-center justify-center gap-1">✨ 标准音节：可练习连读【${syllable}】，点击小火车相碰吧！</span>`;
+    }
 
     this.container.innerHTML = `
       <div class="w-full bg-gradient-to-b from-amber-50 to-orange-100 rounded-3xl p-5 shadow-lg border-4 border-amber-300 select-none">
@@ -65,12 +156,12 @@ class TrainBlenderGame {
             </div>
           </div>
           <div class="flex items-center space-x-2">
-            <span class="bg-amber-100 text-amber-800 text-xs px-3 py-1.5 rounded-full font-bold">专门解决“拼读连不起来”难题</span>
+            <span class="bg-amber-100 text-amber-800 text-xs px-3 py-1.5 rounded-full font-bold">课本同步生字 · 严谨普通话拼读</span>
           </div>
         </div>
 
         <!-- 铁轨与火车动效舞台 -->
-        <div class="relative w-full h-52 bg-gradient-to-b from-sky-100 via-emerald-50 to-emerald-100 rounded-2xl overflow-hidden border-2 border-amber-200 flex items-center justify-center p-4">
+        <div class="relative w-full h-56 bg-gradient-to-b from-sky-100 via-emerald-50 to-emerald-100 rounded-2xl overflow-hidden border-2 border-amber-200 flex items-center justify-center p-4">
           <!-- 背景云朵与小树 -->
           <div class="absolute top-2 left-8 text-2xl opacity-60">☁️</div>
           <div class="absolute top-5 right-12 text-xl opacity-60">☁️</div>
@@ -81,6 +172,20 @@ class TrainBlenderGame {
           <div class="absolute bottom-6 left-0 right-0 h-4 bg-amber-800/20 border-t-2 border-b-2 border-amber-900/40 flex items-center justify-around">
             ${Array(20).fill(0).map(() => '<div class="w-1.5 h-full bg-amber-900/40"></div>').join('')}
           </div>
+
+          <!-- 悬挂式可拉动【呜呜汽笛拉绳】 -->
+          <div id="train-whistle-cord" class="absolute top-2 left-1/2 transform -translate-x-1/2 z-30 cursor-pointer flex flex-col items-center group active:translate-y-2 transition-transform" title="拉动绳子鸣响汽笛！">
+            <div class="w-1.5 h-6 bg-amber-400 border border-amber-600 rounded-full shadow"></div>
+            <div class="w-7 h-7 bg-gradient-to-b from-yellow-300 to-amber-500 rounded-full border-2 border-amber-600 shadow-md flex items-center justify-center text-xs font-bold text-amber-950 group-hover:scale-110 active:scale-95 transition">
+              🔔
+            </div>
+            <span class="text-[10px] bg-white/95 text-amber-950 font-black px-2 py-0.5 rounded-full shadow mt-0.5 whitespace-nowrap border border-amber-300 animate-pulse">
+              🔔 拉汽笛相碰！
+            </span>
+          </div>
+
+          <!-- 烟囱喷出的彩色爱心/云朵烟雾容器 -->
+          <div id="train-smoke-container" class="absolute inset-0 pointer-events-none z-20 overflow-hidden"></div>
 
           <!-- 火车车厢容器 -->
           <div id="train-track-stage" class="relative w-full max-w-lg h-36 flex items-center justify-between px-6 z-10">
@@ -117,23 +222,20 @@ class TrainBlenderGame {
 
           <!-- 拼读合体成功弹窗 / 结果展示 -->
           <div id="train-result-box" class="absolute inset-0 bg-white/95 backdrop-blur-md rounded-2xl z-20 flex flex-col items-center justify-center hidden p-4 shadow-xl border-4 border-amber-400 animate-fadeIn">
-            <div class="text-5xl mb-1 animate-bounce" id="train-result-icon">👨</div>
-            <div class="text-amber-600 text-sm font-bold" id="train-result-py">b - à -> bà</div>
-            <div class="text-4xl font-extrabold text-neutral-800 my-1 font-mono tracking-wider" id="train-result-word">爸爸 bàba</div>
-            <div class="text-xs text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full font-bold mt-1">拼对啦！太棒了！</div>
+            <!-- 动态填充内容 -->
           </div>
         </div>
 
         <!-- 步骤提示与慢拼播放按钮 -->
         <div class="mt-4 flex flex-col items-center">
           <div id="train-status-tip" class="text-amber-900 font-bold text-sm mb-2 text-center h-6">
-            点击下方大按钮，听小火车慢速拼读连读！
+            ${initialTipHtml}
           </div>
 
           <div class="flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-md">
             <button id="btn-train-blend" class="flex-1 w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-95 text-white font-extrabold text-lg py-3 px-5 rounded-2xl shadow-lg border-2 border-amber-300 flex items-center justify-center space-x-2 transition cursor-pointer">
               <span class="text-xl">🚂</span>
-              <span>两音相碰·连读发音！</span>
+              <span>${!isValid ? '两音相碰·看能不能拼！' : '两音相碰·连读发音！'}</span>
             </button>
             <button id="btn-train-replay" class="w-full sm:w-auto bg-white hover:bg-amber-100 active:scale-95 text-amber-950 font-black text-base py-3 px-4 rounded-2xl shadow border-2 border-amber-300 flex items-center justify-center space-x-1.5 transition cursor-pointer shrink-0">
               <span class="text-lg">🔊</span>
@@ -144,7 +246,7 @@ class TrainBlenderGame {
 
         <!-- 自由拼音选择器（点按切换） -->
         <div class="mt-5 pt-4 border-t-2 border-amber-200/80">
-          <div class="text-xs font-bold text-amber-900 mb-2">💡 换一换字母，探索更多拼读：</div>
+          <div class="text-xs font-bold text-amber-900 mb-2">💡 换一换字母，探索课本生字与拼读规则：</div>
 
           <!-- 声母行 -->
           <div class="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
@@ -182,7 +284,17 @@ class TrainBlenderGame {
   bindEvents() {
     if (!this.container) return;
 
-    // 连读播放按钮 (严格从当前容器内查找，支持多次点击与快速打断重放)
+    // 互动汽笛拉绳
+    const whistleCord = this.container.querySelector('#train-whistle-cord');
+    if (whistleCord) {
+      whistleCord.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.pullWhistleCord();
+      };
+    }
+
+    // 连读播放按钮
     const blendBtn = this.container.querySelector('#btn-train-blend');
     if (blendBtn) {
       blendBtn.onclick = (e) => {
@@ -236,6 +348,63 @@ class TrainBlenderGame {
   }
 
   /**
+   * 手动拉动汽笛绳：鸣响汽笛、喷出彩虹烟雾并启动拼读碰撞
+   */
+  pullWhistleCord() {
+    const cord = this.container.querySelector('#train-whistle-cord');
+    if (cord) {
+      cord.style.transform = 'translate(-50%, 14px) scale(0.95)';
+      setTimeout(() => {
+        cord.style.transform = 'translate(-50%, 0) scale(1)';
+      }, 250);
+    }
+
+    this.spawnRainbowSmoke();
+
+    const isValid = this.isValidCombo(this.currentInitial, this.currentFinal);
+    if (window.mascotPipi) {
+      if (isValid) {
+        window.mascotPipi.speak('汽笛鸣响啦！两列小火车开动相碰！🚂💨');
+      } else {
+        window.mascotPipi.speak('汽笛鸣响啦！看看这两个字母能不能碰！🚂');
+      }
+    }
+
+    this.playBlendingAnimation();
+  }
+
+  /**
+   * 喷出彩色爱心、星星与烟雾特效
+   */
+  spawnRainbowSmoke() {
+    const smokeContainer = this.container.querySelector('#train-smoke-container');
+    if (!smokeContainer) return;
+
+    const emojis = ['☁️', '💖', '🌈', '⭐', '💨', '✨'];
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => {
+        const puff = document.createElement('div');
+        puff.className = 'absolute text-2xl transition-all duration-1000 pointer-events-none select-none';
+        puff.innerText = emojis[i % emojis.length];
+        puff.style.left = `${35 + Math.random() * 30}%`;
+        puff.style.top = '55%';
+        puff.style.opacity = '1';
+        puff.style.transform = 'scale(0.5)';
+        smokeContainer.appendChild(puff);
+
+        requestAnimationFrame(() => {
+          puff.style.top = `${8 + Math.random() * 20}%`;
+          puff.style.left = `${parseFloat(puff.style.left) + (Math.random() * 24 - 12)}%`;
+          puff.style.transform = 'scale(1.4) rotate(20deg)';
+          puff.style.opacity = '0';
+
+          setTimeout(() => puff.remove(), 1050);
+        });
+      }, i * 80);
+    }
+  }
+
+  /**
    * 安全重置小火车动效与按钮状态，杜绝任何中间状态卡死
    */
   resetAnimation() {
@@ -259,41 +428,81 @@ class TrainBlenderGame {
     const blendBtn = this.container.querySelector('#btn-train-blend');
 
     if (initialCar) {
+      initialCar.style.transition = 'all 0.4s ease-out';
       initialCar.style.transform = 'translateX(0)';
       initialCar.classList.remove('scale-110');
     }
     if (finalCar) {
+      finalCar.style.transition = 'all 0.4s ease-out';
       finalCar.style.transform = 'translateX(0)';
       finalCar.classList.remove('scale-110');
     }
-    if (spark) spark.classList.add('opacity-0');
+    if (spark) {
+      spark.innerText = '⚡';
+      spark.classList.add('opacity-0');
+    }
     if (resultBox) resultBox.classList.add('hidden');
-    if (tip) tip.innerText = '点击下方大按钮，听小火车慢速拼读连读！';
+
+    const isValid = this.isValidCombo(this.currentInitial, this.currentFinal);
+    const curFinalObj = this.finalOptions.find(f => f.base === this.currentFinal) || this.finalOptions[0];
+    const curToneChar = curFinalObj.tones[this.currentToneIndex] || curFinalObj.tones[0];
+    const syllable = this.constructSyllable(this.currentInitial, this.currentFinal, this.currentToneIndex);
+    const textbookMatches = isValid ? this.getTextbookHanzi(this.currentInitial, this.currentFinal, this.currentToneIndex) : [];
+
+    if (tip) {
+      if (!isValid) {
+        tip.innerHTML = `<span class="text-rose-600 font-extrabold flex items-center justify-center gap-1">⚠️ 提示：【${this.currentInitial}】与【${curToneChar}】不能相拼，相碰会弹开哦！</span>`;
+      } else if (textbookMatches.length > 0) {
+        const charsStr = textbookMatches.map(m => m.char).join('、');
+        tip.innerHTML = `<span class="text-emerald-700 font-extrabold flex items-center justify-center gap-1">📖 课本生字：可拼出【${charsStr}】，点击小火车相碰吧！</span>`;
+      } else {
+        tip.innerHTML = `<span class="text-amber-800 font-bold flex items-center justify-center gap-1">✨ 标准音节：可练习连读【${syllable}】，点击小火车相碰吧！</span>`;
+      }
+    }
+
     if (blendBtn) {
       blendBtn.classList.remove('ring-4', 'ring-amber-300', 'animate-pulse');
-      blendBtn.innerHTML = `
-        <span class="text-xl">🚂</span>
-        <span>两音相碰·连读发音！</span>
-      `;
+      if (!isValid) {
+        blendBtn.innerHTML = `
+          <span class="text-xl">🚂</span>
+          <span>两音相碰·看能不能拼！</span>
+        `;
+      } else {
+        blendBtn.innerHTML = `
+          <span class="text-xl">🚂</span>
+          <span>两音相碰·连读发音！</span>
+        `;
+      }
     }
   }
 
   /**
-   * 重播读音：直接朗读当前两音节合成音或声母韵母发音
+   * 重播读音：直接朗读当前两音节合成音
    */
   playDirectAudio() {
     if (this.isAnimating) {
       this.resetAnimation();
     }
+    const isValid = this.isValidCombo(this.currentInitial, this.currentFinal);
+    const curFinalObj = this.finalOptions.find(f => f.base === this.currentFinal) || this.finalOptions[0];
+    const curToneChar = curFinalObj.tones[this.currentToneIndex] || curFinalObj.tones[0];
+    const syllable = this.constructSyllable(this.currentInitial, this.currentFinal, this.currentToneIndex);
+
     if (window.audioEngine) {
       window.audioEngine.stopAllAudio();
       window.audioEngine.ensureAudioContext();
-      const curFinalObj = this.finalOptions.find(f => f.base === this.currentFinal) || this.finalOptions[0];
-      const curToneChar = curFinalObj.tones[this.currentToneIndex];
-      const key = `${this.currentInitial}-${this.currentFinal}-${this.currentToneIndex + 1}`;
-      const blendResult = this.blendDict[key];
-      const targetSound = blendResult ? blendResult.syllable : `${this.currentInitial}${curToneChar}`;
-      window.audioEngine.speak(targetSound);
+
+      if (!isValid) {
+        window.audioEngine.playGentleOops();
+        const tip = this.container ? this.container.querySelector('#train-status-tip') : null;
+        if (tip) tip.innerText = `⚠️ 当前【${this.currentInitial}】与【${curToneChar}】不能相拼，请换一个字母！`;
+        if (window.mascotPipi) {
+          window.mascotPipi.speak('这两个字母不能相拼哦，换一个试试吧！');
+        }
+        return;
+      }
+
+      window.audioEngine.speak(syllable);
     }
   }
 
@@ -301,7 +510,6 @@ class TrainBlenderGame {
    * 触发小火车滑行对撞与连读语音流程
    */
   playBlendingAnimation() {
-    // 若当前正在播放中，点击可立刻重置并重新触发，保证绝不死机
     if (this.isAnimating) {
       this.resetAnimation();
     }
@@ -328,59 +536,199 @@ class TrainBlenderGame {
       `;
     }
 
+    const isValid = this.isValidCombo(this.currentInitial, this.currentFinal);
     const curFinalObj = this.finalOptions.find(f => f.base === this.currentFinal) || this.finalOptions[0];
-    const curToneChar = curFinalObj.tones[this.currentToneIndex];
-
-    const key = `${this.currentInitial}-${this.currentFinal}-${this.currentToneIndex + 1}`;
-    const blendResult = this.blendDict[key] || {
-      syllable: `${this.currentInitial}${curToneChar}`,
-      word: `${this.currentInitial}${curToneChar}`,
-      icon: '✨',
-      tip: `${this.currentInitial} 与 ${curToneChar} 拼读`
-    };
+    const curToneChar = curFinalObj.tones[this.currentToneIndex] || curFinalObj.tones[0];
+    const syllable = this.constructSyllable(this.currentInitial, this.currentFinal, this.currentToneIndex);
+    const textbookMatches = isValid ? this.getTextbookHanzi(this.currentInitial, this.currentFinal, this.currentToneIndex) : [];
+    const reason = !isValid ? this.getInvalidReason(this.currentInitial, this.currentFinal) : '';
 
     // 步骤 1：读声母
     if (tip) tip.innerText = `第一步：声母轻短读【${this.currentInitial}】...`;
     if (initialCar) initialCar.classList.add('scale-110');
 
-    // 安全超时保护：无论任何异常，最长 6.5 秒必然自动复位归位
+    // 安全超时保护：最长 7 秒必然自动复位归位
     clearTimeout(this.animWatchdog);
     this.animWatchdog = setTimeout(() => {
       this.resetAnimation();
-    }, 6500);
+    }, 7000);
 
-    const handleStep = (step, text) => {
+    const handleStep = (step, data) => {
       if (step === 2) {
         // 步骤 2：读韵母
         if (initialCar) initialCar.classList.remove('scale-110');
         if (finalCar) finalCar.classList.add('scale-110');
         if (tip) tip.innerText = `第二步：韵母响亮读【${curToneChar}】...`;
       } else if (step === 3) {
-        // 步骤 3：滑行碰撞！
+        // 步骤 3：两车滑行加速靠拢！
         if (finalCar) finalCar.classList.remove('scale-110');
         if (tip) tip.innerText = `第三步：两节车厢开动相碰！${this.currentInitial}...${curToneChar}...`;
-        if (initialCar) initialCar.style.transform = 'translateX(90px)';
-        if (finalCar) finalCar.style.transform = 'translateX(-90px)';
-        if (spark) spark.classList.remove('opacity-0');
+        if (initialCar) {
+          initialCar.style.transition = 'all 0.5s ease-in';
+          initialCar.style.transform = 'translateX(90px)';
+        }
+        if (finalCar) {
+          finalCar.style.transition = 'all 0.5s ease-in';
+          finalCar.style.transform = 'translateX(-90px)';
+        }
+        if (spark) {
+          spark.innerText = '⚡';
+          spark.classList.remove('opacity-0');
+        }
       } else if (step === 4) {
-        // 步骤 4：合体成功！
-        if (tip) tip.innerText = `猛一碰！合读：【${blendResult.syllable}】！`;
-        if (resultBox) {
-          const iconEl = this.container.querySelector('#train-result-icon');
-          const pyEl = this.container.querySelector('#train-result-py');
-          const wordEl = this.container.querySelector('#train-result-word');
-          if (iconEl) iconEl.innerText = blendResult.icon;
-          if (pyEl) pyEl.innerText = `${this.currentInitial} - ${curToneChar} -> ${blendResult.syllable}`;
-          if (wordEl) wordEl.innerText = blendResult.word;
-          resultBox.classList.remove('hidden');
+        // 步骤 4：碰撞判断
+        if (!isValid) {
+          // ===============================
+          // 碰撞不成功！弹回与友好提示
+          // ===============================
+          if (initialCar) {
+            initialCar.style.transition = 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            initialCar.style.transform = 'translateX(-25px)';
+            setTimeout(() => {
+              if (initialCar) initialCar.style.transform = 'translateX(0)';
+            }, 300);
+          }
+          if (finalCar) {
+            finalCar.style.transition = 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            finalCar.style.transform = 'translateX(25px)';
+            setTimeout(() => {
+              if (finalCar) finalCar.style.transform = 'translateX(0)';
+            }, 300);
+          }
+          if (spark) {
+            spark.innerText = '💥';
+            spark.classList.remove('opacity-0');
+          }
+
+          if (tip) tip.innerText = `⚠️ 碰不起来哦！【${this.currentInitial}】与【${curToneChar}】不能相拼。`;
+
+          if (window.mascotPipi) {
+            window.mascotPipi.speak('哎呀，这两个字母碰不起来哦！换个字母再试一次吧！');
+          }
+
+          if (resultBox) {
+            resultBox.className = 'absolute inset-0 bg-white/95 backdrop-blur-md rounded-2xl z-20 flex flex-col items-center justify-center p-4 shadow-xl border-4 border-rose-400 animate-fadeIn';
+            resultBox.innerHTML = `
+              <div class="text-4xl mb-1 animate-bounce">💥 🚂 🚫</div>
+              <div class="text-xs text-rose-800 bg-rose-100 border border-rose-300 px-3 py-1 rounded-full font-black tracking-wide mb-1">
+                ⚠️ 碰撞不成功 · 不能相拼
+              </div>
+              <div class="text-xl font-black text-rose-950 my-1">
+                【${this.currentInitial}】与【${curToneChar}】碰不起来！
+              </div>
+              <div class="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-3 my-1.5 text-center max-w-xs font-medium leading-relaxed shadow-sm whitespace-pre-line">
+                ${reason}
+              </div>
+              <button id="btn-result-close" class="mt-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 text-white font-black text-xs px-4 py-2 rounded-xl shadow-md cursor-pointer active:scale-95 transition">
+                我知道啦，换字母重试 🔄
+              </button>
+            `;
+            resultBox.classList.remove('hidden');
+
+            const closeBtn = resultBox.querySelector('#btn-result-close');
+            if (closeBtn) {
+              closeBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.resetAnimation();
+              };
+            }
+          }
+
+        } else {
+          // ===============================
+          // 碰撞成功！
+          // ===============================
+          if (spark) {
+            spark.innerText = '✨';
+            spark.classList.remove('opacity-0');
+          }
+          if (tip) tip.innerText = `猛一碰！合读：【${syllable}】！`;
+
+          if (window.mascotPipi) {
+            window.mascotPipi.playGiggleChime();
+          }
+
+          if (resultBox) {
+            if (textbookMatches.length > 0) {
+              // 课本生字模式：如语文课本中有的字就显示出来
+              const primaryChar = textbookMatches[0].char;
+              const allChars = textbookMatches.map(m => m.char).join('、');
+              const wordsList = textbookMatches.flatMap(m => m.words).slice(0, 3).join(' · ');
+              const unit = textbookMatches[0].unit;
+
+              resultBox.className = 'absolute inset-0 bg-white/95 backdrop-blur-md rounded-2xl z-20 flex flex-col items-center justify-center p-4 shadow-xl border-4 border-amber-400 animate-fadeIn';
+              resultBox.innerHTML = `
+                <div class="text-xs text-amber-800 bg-amber-100 border border-amber-300 px-3 py-1 rounded-full font-black tracking-wide mb-1 flex items-center gap-1">
+                  <span>📖 统编一年级课本生字</span>
+                  <span class="text-amber-600 font-normal">| ${unit}</span>
+                </div>
+                <div class="text-xs text-amber-600 font-extrabold my-0.5">
+                  ${this.currentInitial} + ${curToneChar} ➔ <span class="text-amber-800 font-black text-sm">${syllable}</span>
+                </div>
+                <div class="text-5xl font-black text-amber-950 my-1 font-serif tracking-wider">
+                  ${textbookMatches.length > 1 ? allChars : primaryChar}
+                </div>
+                <div class="text-base font-bold text-amber-800 my-0.5">
+                  ${wordsList}
+                </div>
+                <div class="flex items-center gap-2 mt-2">
+                  <span class="text-xs text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full font-bold">🌟 拼对啦！课本里的生字学会啦！</span>
+                  <button id="btn-result-replay" class="text-xs bg-amber-100 hover:bg-amber-200 active:scale-95 text-amber-900 font-black px-2.5 py-1 rounded-full flex items-center gap-1 cursor-pointer shadow-sm border border-amber-300">
+                    <span>🔊 听读音</span>
+                  </button>
+                </div>
+              `;
+            } else {
+              // 纯拼音音节模式：不在课本的字不用显示，只显示拼音音节
+              resultBox.className = 'absolute inset-0 bg-white/95 backdrop-blur-md rounded-2xl z-20 flex flex-col items-center justify-center p-4 shadow-xl border-4 border-sky-400 animate-fadeIn';
+              resultBox.innerHTML = `
+                <div class="text-xs text-sky-800 bg-sky-100 border border-sky-300 px-3 py-1 rounded-full font-black tracking-wide mb-1 flex items-center gap-1">
+                  <span>✨ 标准普通话拼音音节</span>
+                  <span class="text-sky-600 font-normal">(纯音节练读)</span>
+                </div>
+                <div class="text-xs text-sky-600 font-extrabold my-0.5">
+                  ${this.currentInitial} + ${curToneChar} ➔
+                </div>
+                <div class="text-5xl font-black text-sky-950 my-1 font-mono tracking-wider">
+                  ${syllable}
+                </div>
+                <div class="text-xs text-slate-500 font-medium my-0.5">
+                  一年级课本暂无此生字，专心练习拼读连读发音哦！
+                </div>
+                <div class="flex items-center gap-2 mt-2">
+                  <span class="text-xs text-sky-700 bg-sky-100 px-3 py-1 rounded-full font-bold">🎉 发音很标准！太棒了！</span>
+                  <button id="btn-result-replay" class="text-xs bg-sky-100 hover:bg-sky-200 active:scale-95 text-sky-900 font-black px-2.5 py-1 rounded-full flex items-center gap-1 cursor-pointer shadow-sm border border-sky-300">
+                    <span>🔊 听读音</span>
+                  </button>
+                </div>
+              `;
+            }
+            resultBox.classList.remove('hidden');
+
+            const replayBtn = resultBox.querySelector('#btn-result-replay');
+            if (replayBtn) {
+              replayBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (window.audioEngine) window.audioEngine.speak(syllable);
+              };
+            }
+          }
         }
       } else if (step === 5) {
-        // 结束归位
+        // 步骤 5：完成归位
         clearTimeout(this.stepTimer);
         this.stepTimer = setTimeout(() => {
           this.resetAnimation();
-          if (tip) tip.innerText = '太棒啦！还可以换其他字母继续拼读哦！';
-        }, 1600);
+          if (tip) {
+            if (!isValid) {
+              tip.innerText = '换一个可以相拼的字母，再试一次吧！';
+            } else {
+              tip.innerText = '太棒啦！还可以换其他字母继续拼读哦！';
+            }
+          }
+        }, 1800);
       }
     };
 
@@ -388,8 +736,9 @@ class TrainBlenderGame {
       window.audioEngine.playBlendLadder({
         initial: this.currentInitial,
         tone: curToneChar,
-        syllable: blendResult.syllable,
-        word: blendResult.word
+        syllable: syllable,
+        isInvalid: !isValid,
+        reason: reason
       }, handleStep);
     } else {
       // 离线/无音频引擎纯视觉定时降级方案
@@ -399,10 +748,10 @@ class TrainBlenderGame {
         this.stepTimer = setTimeout(() => {
           handleStep(3, `${this.currentInitial}—>${curToneChar}`);
           this.stepTimer = setTimeout(() => {
-            handleStep(4, blendResult.syllable);
+            handleStep(4, { isInvalid: !isValid, syllable, reason });
             this.stepTimer = setTimeout(() => {
               handleStep(5, 'done');
-            }, 1200);
+            }, 1800);
           }, 800);
         }, 800);
       }, 800);

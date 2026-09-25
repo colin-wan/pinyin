@@ -219,13 +219,12 @@ class HanziPinyinGameHub {
 
     const cardElem = document.getElementById(`card-elem-${index}`);
 
-    // 发音：朗读该汉字或拼音 (真人母带优先)
+    // 发音：朗读该汉字或拼音 (真人母带优先，杜绝多余机械朗读)
     if (window.audioEngine) {
       window.audioEngine.stopAllAudio();
       if (card.type === 'hanzi') {
-        window.audioEngine.speak(`${card.text}，${card.word}`);
+        window.audioEngine.speak(card.text);
       } else {
-        // card.type === 'pinyin': 朗读对应汉字的标准普通话真实发音，防止英文拼写
         window.audioEngine.speak(card.matchKey);
       }
     }
@@ -266,12 +265,17 @@ class HanziPinyinGameHub {
         window.screenTimeLock.recordAnswer(true);
       }
 
+      if (window.celebrationFX) {
+        window.celebrationFX.registerCorrect(second.elem);
+      }
+
+      if (window.app && window.app.state) {
+        window.app.state.addStars(1);
+      }
+
       if (window.audioEngine) {
         window.audioEngine.playBalloonPop();
         window.audioEngine.playSuccess();
-        setTimeout(() => {
-          window.audioEngine.speak(`配对成功！${first.card.matchKey}，${first.card.word || ''}！`);
-        }, 200);
       }
 
       first.elem.classList.add('bg-emerald-100', 'border-emerald-400', 'opacity-0', 'scale-75', 'pointer-events-none');
@@ -321,8 +325,12 @@ class HanziPinyinGameHub {
     const pool = this.getFilteredHanzi();
     if (pool.length < 4) return;
 
-    // 随机选择目标汉字
-    const target = pool[Math.floor(Math.random() * pool.length)];
+    // 优先避免连续两道题重复抽中同一个汉字
+    const availablePool = this.lastQuizChar ? pool.filter(item => item.char !== this.lastQuizChar) : pool;
+    const targetPool = availablePool.length >= 4 ? availablePool : pool;
+    const target = targetPool[Math.floor(Math.random() * targetPool.length)];
+    this.lastQuizChar = target.char;
+
     // 生成 3 个混淆项拼音
     const distractors = pool.filter(item => item.char !== target.char && item.pinyin !== target.pinyin);
     distractors.sort(() => Math.random() - 0.5);
@@ -345,8 +353,8 @@ class HanziPinyinGameHub {
           <div class="text-xs text-amber-700 font-bold bg-amber-50 px-3 py-1 rounded-full flex items-center space-x-1">
             <span>📚 组词：${(target.words && target.words.join('、')) || ''}</span>
           </div>
-          <button id="btn-quiz-speak" class="mt-4 bg-amber-400 hover:bg-amber-500 active:scale-95 text-amber-950 font-extrabold text-xs px-4 py-2 rounded-full shadow flex items-center space-x-1.5 transition cursor-pointer">
-            <span>🔊 重播读音 (听生字发音)</span>
+          <button id="btn-quiz-speak" class="mt-4 bg-amber-400 hover:bg-amber-500 active:scale-95 text-amber-950 font-extrabold text-xs px-4 py-2 rounded-full shadow flex items-center space-x-1.5 transition cursor-pointer" title="点击重播发音">
+            <span>🔊 听发音 (已自动播放，点击可重播)</span>
           </button>
         </div>
 
@@ -361,18 +369,39 @@ class HanziPinyinGameHub {
       </div>
     `;
 
-    document.getElementById('btn-quiz-speak')?.addEventListener('click', () => {
+    // 播放汉字/拼音发音
+    const playTargetSound = () => {
+      const btn = document.getElementById('btn-quiz-speak');
+      if (btn) btn.classList.add('ring-4', 'ring-amber-300', 'scale-105');
       if (window.audioEngine) {
-        window.audioEngine.speak(`${target.char}，${target.words && target.words[0]}`);
+        window.audioEngine.speak(target.pinyin, () => {
+          if (btn) btn.classList.remove('ring-4', 'ring-amber-300', 'scale-105');
+        });
       }
-    });
+    };
 
+    document.getElementById('btn-quiz-speak')?.addEventListener('click', playTargetSound);
+
+    // 【新增需求】看汉字选拼音：出题后自动播放发音
+    if (this.quizAutoPlayTimer) {
+      clearTimeout(this.quizAutoPlayTimer);
+    }
+    this.quizAutoPlayTimer = setTimeout(() => {
+      playTargetSound();
+    }, 280);
+
+    let isAnswering = false;
     stage.querySelectorAll('.hanzi-quiz-opt-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        if (this.quizAutoPlayTimer) {
+          clearTimeout(this.quizAutoPlayTimer);
+        }
+        if (isAnswering) return;
         const chosen = e.currentTarget.dataset.opt;
         const isCorrect = chosen === target.pinyin;
 
         if (isCorrect) {
+          isAnswering = true;
           e.currentTarget.classList.add('bg-emerald-500', 'text-white', 'border-emerald-600');
           this.score += 10;
           this.streak += 1;
@@ -382,14 +411,22 @@ class HanziPinyinGameHub {
             window.screenTimeLock.recordAnswer(true);
           }
 
+          if (window.celebrationFX) {
+            window.celebrationFX.registerCorrect(e.currentTarget);
+          }
+
+          if (window.app && window.app.state) {
+            window.app.state.addStars(1);
+          }
+
           if (window.audioEngine) {
+            // 纯粹播放轻快悦耳的答对音效，不进行机械冗余朗读
             window.audioEngine.playSuccess();
-            window.audioEngine.speak(`答对啦！${target.char}，${target.words && target.words[0] ? target.words[0] : ''}！`);
           }
 
           setTimeout(() => {
             this.initQuizGame(stage);
-          }, 1100);
+          }, 850);
         } else {
           e.currentTarget.classList.add('bg-rose-100', 'border-rose-400', 'animate-shake');
           this.streak = 0;
@@ -399,9 +436,12 @@ class HanziPinyinGameHub {
             window.screenTimeLock.recordAnswer(false);
           }
 
+          if (window.celebrationFX) {
+            window.celebrationFX.registerMistake();
+          }
+
           if (window.audioEngine) {
             window.audioEngine.playGentleOops();
-            window.audioEngine.speak('再仔细看看拼音声调哦！');
           }
 
           setTimeout(() => {
@@ -419,7 +459,12 @@ class HanziPinyinGameHub {
     const pool = this.getFilteredHanzi();
     if (pool.length < 4) return;
 
-    const target = pool[Math.floor(Math.random() * pool.length)];
+    // 优先避免连续两道题重复抽中同一个汉字
+    const availablePool = this.lastListenChar ? pool.filter(item => item.char !== this.lastListenChar) : pool;
+    const targetPool = availablePool.length >= 4 ? availablePool : pool;
+    const target = targetPool[Math.floor(Math.random() * targetPool.length)];
+    this.lastListenChar = target.char;
+
     const distractors = pool.filter(item => item.char !== target.char).sort(() => Math.random() - 0.5);
 
     const apples = [target, distractors[0], distractors[1], distractors[2]];
@@ -461,23 +506,25 @@ class HanziPinyinGameHub {
       </div>
     `;
 
-    // 自动播放一次发音
+    // 自动播放真人母带纯正发音 (杜绝机械长句)
     const playTargetAudio = () => {
       if (window.audioEngine) {
-        const wordTip = (target.words && target.words[0]) ? `，${target.words[0]}` : '';
-        window.audioEngine.speak(`请摘下【${target.char}】字苹果${wordTip}！`);
+        window.audioEngine.speak(target.pinyin);
       }
     };
     setTimeout(playTargetAudio, 400);
 
     document.getElementById('btn-listen-replay')?.addEventListener('click', playTargetAudio);
 
+    let isAnswering = false;
     stage.querySelectorAll('.apple-fruit-btn').forEach(elem => {
       elem.addEventListener('click', (e) => {
+        if (isAnswering) return;
         const chosenChar = e.currentTarget.dataset.char;
         const isCorrect = chosenChar === target.char;
 
         if (isCorrect) {
+          isAnswering = true;
           this.score += 10;
           this.streak += 1;
           this.updateScoreBar();
@@ -486,18 +533,24 @@ class HanziPinyinGameHub {
             window.screenTimeLock.recordAnswer(true);
           }
 
+          if (window.celebrationFX) {
+            window.celebrationFX.registerCorrect(e.currentTarget);
+          }
+
+          if (window.app && window.app.state) {
+            window.app.state.addStars(1);
+          }
+
           if (window.audioEngine) {
-            window.audioEngine.playStar();
+            // 纯粹清脆悦耳的通关音效，不进行机械念诵
             window.audioEngine.playSuccess();
-            const wordTip = (target.words && target.words[0]) ? `，${target.words[0]}` : '';
-            window.audioEngine.speak(`太棒啦！摘下了【${target.char}】字${wordTip}！`);
           }
 
           e.currentTarget.classList.add('scale-125', 'opacity-0', 'transition-all', 'duration-500');
 
           setTimeout(() => {
             this.initListenGame(stage);
-          }, 1100);
+          }, 850);
         } else {
           this.streak = 0;
           this.updateScoreBar();
@@ -506,9 +559,12 @@ class HanziPinyinGameHub {
             window.screenTimeLock.recordAnswer(false);
           }
 
+          if (window.celebrationFX) {
+            window.celebrationFX.registerMistake();
+          }
+
           if (window.audioEngine) {
             window.audioEngine.playGentleOops();
-            window.audioEngine.speak('这个苹果上的字不对哦，再听听看！');
           }
 
           e.currentTarget.classList.add('animate-shake');

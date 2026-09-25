@@ -370,14 +370,164 @@ class PinyinAudioEngine {
       'ǖ': ['ü', '1'], 'ǘ': ['ü', '2'], 'ǚ': ['ü', '3'], 'ǜ': ['ü', '4']
     };
 
-    this.phoneticMap = {
+    // 认读儿歌与课文标题专用：将拼音字母音精准转换为纯正发音汉字，消除英文机械音
+    this.rhymePhoneticMap = {
+      // 整体认读音节与多字母韵母
+      'ang': '昂', 'eng': '亨', 'ing': '英', 'ong': '轰',
+      // 前鼻韵母
+      'an': '安', 'en': '恩', 'in': '因', 'un': '温', 'ün': '晕',
+      // 复韵母与特殊韵母
+      'ai': '哀', 'ei': '欸', 'ui': '威', 'ao': '熬', 'ou': '欧', 'iu': '优',
+      'ie': '耶', 'üe': '约', 'er': '耳',
+      // 整体认读音节与翘舌音
+      'zhi': '知', 'chi': '吃', 'shi': '诗', 'ri': '日',
+      'zh': '知', 'ch': '吃', 'sh': '诗',
+      'zi': '资', 'ci': '疵', 'si': '思',
+      'yi': '衣', 'wu': '乌', 'yu': '迂',
+      'yue': '月', 'yuan': '元', 'yin': '音', 'yun': '云', 'ying': '鹰',
+      'ju': '居', 'qu': '区', 'xu': '须',
+      // 带调特殊韵母及复合音
+      'ěr': '耳', 'èr': '二',
+      'ā': '啊', 'á': '啊', 'ǎ': '啊', 'à': '啊',
+      'ō': '喔', 'ó': '喔', 'ǒ': '喔', 'ò': '喔',
+      'ē': '鹅', 'é': '鹅', 'ě': '鹅', 'è': '鹅',
+      'ī': '衣', 'í': '衣', 'ǐ': '衣', 'ì': '衣',
+      'ū': '乌', 'ú': '乌', 'ǔ': '乌', 'ù': '乌',
+      'ǖ': '迂', 'ǘ': '迂', 'ǚ': '迂', 'ǜ': '迂',
+      'g-u-ā': '哥、乌、啊', 'g-u-a': '哥、乌、啊',
+      // 23个声母呼读音汉字
       'b': '玻', 'p': '坡', 'm': '摸', 'f': '佛',
       'd': '得', 't': '特', 'n': '讷', 'l': '勒',
       'g': '哥', 'k': '科', 'h': '喝',
       'j': '基', 'q': '七', 'x': '西',
-      'zh': '知', 'ch': '吃', 'sh': '诗', 'r': '日',
-      'z': '资', 'c': '疵', 's': '思',
-      'y': '衣', 'w': '乌'
+      'r': '日', 'z': '资', 'c': '疵', 's': '思',
+      'y': '衣', 'w': '乌',
+      // 6个单韵母
+      'a': '啊', 'o': '喔', 'e': '鹅', 'i': '衣', 'u': '乌', 'ü': '迂',
+      // 儿歌及标题辅助汉字
+      '9字': '九字', '2字': '二字', '8字': '八字'
+    };
+
+    // 13课标准教学课文标题规范发音映射
+    this.lessonTitlesSpokenMap = {
+      1: '第一课：啊、喔、鹅',
+      2: '第二课：衣、乌、迂、衣、乌',
+      3: '第三课：玻、坡、摸、佛',
+      4: '第四课：得、特、讷、勒',
+      5: '第五课：哥、科、喝',
+      6: '第六课：基、七、西',
+      7: '第七课：资、疵、思',
+      8: '第八课：知、吃、诗、日',
+      9: '第九课：哀、欸、威',
+      10: '第十课：熬、欧、优',
+      11: '第十一课：耶、约、耳',
+      12: '第十二课：安、恩、因、温、晕',
+      13: '第十三课：昂、亨、英、轰'
+    };
+
+    // 真人母带精确音频波形起止点与有效发音时长数据库（毫秒级对齐，消除首尾静音延迟）
+    this.audioCues = {"a1.mp3":[0.163,0.81],"ai1.mp3":[0.109,0.955],"an1.mp3":[0.062,0.889],"an4.mp3":[0.087,0.926],"ang1.mp3":[0.067,1.07],"ang2.mp3":[0.003,0.846],"ao1.mp3":[0.109,0.937],"ao3.mp3":[0.172,1.093],"ba1.mp3":[0.122,1.314],"ba2.mp3":[0.009,1.038],"ba3.mp3":[0.549,1.124],"bai2.mp3":[0.466,1.008],"ban4.mp3":[0.678,1.077],"bang4.mp3":[0.484,1.373],"biao1.mp3":[0.269,1.179],"bing3.mp3":[0.496,1.289],"bing4.mp3":[0.397,0.948],"bo1.mp3":[0.198,0.953],"bu4.mp3":[0.457,1.215],"cha2.mp3":[0.009,0.742],"chao2.mp3":[0.408,0.986],"chen2.mp3":[0.282,0.785],"chi1.mp3":[0.21,0.861],"chi2.mp3":[0.287,0.939],"chi3.mp3":[0.31,1.109],"chi4.mp3":[0.132,0.769],"chu1.mp3":[0.33,0.868],"chu4.mp3":[0.417,0.839],"chui1.mp3":[0.412,0.747],"ci1.mp3":[0.079,0.716],"cong2.mp3":[0.111,0.834],"da4.mp3":[0.362,0.692],"dao1.mp3":[0.685,0.877],"dao4.mp3":[0.567,0.99],"de2.mp3":[0.671,0.834],"deng1.mp3":[0.343,0.859],"di2.mp3":[0.645,1.019],"di4.mp3":[0.677,0.918],"dian3.mp3":[0.679,1.216],"diao4.mp3":[0.414,1.134],"dong4.mp3":[0.716,0.929],"du2.mp3":[0.444,1.006],"dui4.mp3":[0.625,0.896],"duo1.mp3":[0.368,0.935],"e1.mp3":[0.133,0.822],"e2.mp3":[0.009,0.595],"en1.mp3":[0.065,1.03],"eng1.mp3":[0.063,1.127],"er2.mp3":[0.009,0.66],"er3.mp3":[0.07,0.977],"er4.mp3":[0.238,0.749],"fei1.mp3":[0.55,1.34],"fo2.mp3":[0.559,0.908],"ge1.mp3":[0.26,0.869],"ge4.mp3":[0.219,0.915],"gen1.mp3":[0.188,0.857],"gua1.mp3":[0.371,0.793],"guai3.mp3":[0.318,0.98],"gun4.mp3":[0.362,1.023],"guo3.mp3":[0.387,1.016],"hai3.mp3":[0.177,1.073],"he1.mp3":[0.234,1.277],"he2.mp3":[0.077,0.838],"hong2.mp3":[0.054,0.755],"hou4.mp3":[0.203,0.819],"huo2.mp3":[0.137,0.789],"ji1.mp3":[0.163,0.697],"ji4.mp3":[0.207,0.684],"jia1.mp3":[0.105,0.826],"jian4.mp3":[0.267,0.649],"jiao4.mp3":[0.25,0.724],"jin1.mp3":[0.614,0.865],"jin3.mp3":[0.258,1.006],"jiu3.mp3":[0.188,1.01],"kan4.mp3":[0.279,0.774],"ke1.mp3":[0.152,0.71],"ke4.mp3":[0.199,0.977],"lai2.mp3":[0.324,0.979],"lao2.mp3":[0.295,0.92],"le4.mp3":[0.316,0.987],"li3.mp3":[0.253,1.008],"li4.mp3":[0.336,0.968],"liang3.mp3":[0.172,1.193],"lin2.mp3":[0.151,0.838],"ling2.mp3":[0.213,0.935],"liu4.mp3":[0.334,0.853],"lun2.mp3":[0.19,0.905],"luo2.mp3":[0.176,0.92],"mao2.mp3":[0.392,0.955],"mao4.mp3":[0.415,1.029],"men2.mp3":[0.333,0.983],"mian2.mp3":[0.533,1.076],"mo1.mp3":[0.177,1.126],"mu3.mp3":[0.265,1.248],"nao4.mp3":[0.495,1.034],"ne4.mp3":[0.419,0.868],"nuan3.mp3":[0.268,1.168],"o1.mp3":[0.179,0.747],"ou1.mp3":[0.522,0.849],"peng2.mp3":[0.455,1.084],"pian4.mp3":[0.739,1.108],"piao1.mp3":[0.339,1.216],"ping2.mp3":[0.103,0.923],"po1.mp3":[0.424,1.114],"qi1.mp3":[0.354,0.832],"qi2.mp3":[0.319,0.825],"qi3.mp3":[0.242,1.135],"qian2.mp3":[0.246,0.861],"qiang1.mp3":[0.132,0.872],"qie1.mp3":[0.176,0.846],"qing1.mp3":[0.207,1.343],"qu4.mp3":[0.395,0.609],"quan1.mp3":[0.223,0.821],"re4.mp3":[0.412,0.581],"ri4.mp3":[0.279,0.557],"san1.mp3":[0.066,0.984],"san3.mp3":[0.138,1.134],"shan1.mp3":[0.346,0.833],"shang4.mp3":[0.5,0.83],"she2.mp3":[0.155,0.847],"shen1.mp3":[0.351,0.758],"sheng1.mp3":[0.273,0.859],"shi1.mp3":[0.009,0.792],"shi2.mp3":[0.179,0.806],"shi4.mp3":[0.234,0.996],"shou3.mp3":[0.413,1.089],"shu1.mp3":[0.118,0.812],"shu4.mp3":[0.478,0.728],"shui3.mp3":[0.408,1.224],"si1.mp3":[0.009,0.8],"si4.mp3":[0.052,0.7],"tang2.mp3":[0.3,0.961],"te4.mp3":[0.343,1.015],"ti3.mp3":[0.322,1.228],"tian1.mp3":[0.127,1.015],"ting3.mp3":[0.107,0.961],"tou2.mp3":[0.412,0.965],"tu1.mp3":[0.276,1.008],"tuo1.mp3":[0.225,1.115],"wan1.mp3":[0.079,0.886],"wei1.mp3":[0.009,0.984],"wei2.mp3":[0.629,1.381],"wen1.mp3":[0.074,1.082],"weng1.mp3":[0.235,1.111],"wu1.mp3":[0.009,0.99],"wu3.mp3":[0.22,1.322],"xi1.mp3":[0.022,0.845],"xia4.mp3":[0.319,0.844],"xiang2.mp3":[0.25,0.823],"xiang4.mp3":[0.443,0.81],"xiao3.mp3":[0.379,1.145],"xing2.mp3":[0.343,0.77],"xiong2.mp3":[0.417,0.785],"ya2.mp3":[0.009,0.908],"yang2.mp3":[0.262,1.267],"yao4.mp3":[0.009,1.17],"ye1.mp3":[0.076,0.973],"ye4.mp3":[0.098,1.17],"yi1.mp3":[0.082,0.899],"yi2.mp3":[0.009,0.739],"yi3.mp3":[0.132,1.093],"yi4.mp3":[0.156,2.083],"yin1.mp3":[0.009,1.146],"ying1.mp3":[0.075,1.196],"yong4.mp3":[0.363,1.27],"you1.mp3":[0.074,1.154],"you2.mp3":[0.009,1.202],"you3.mp3":[0.081,1.347],"you4.mp3":[0.061,1.183],"yu1.mp3":[0.427,1.118],"yu2.mp3":[0.576,1.164],"yuan2.mp3":[0.56,1.012],"yue4.mp3":[0.639,1.094],"yun1.mp3":[0.075,1.36],"yun2.mp3":[0.151,1.115],"yun4.mp3":[0.311,1.224],"zai4.mp3":[0.105,1.098],"zhan3.mp3":[0.275,1.179],"zhang1.mp3":[0.157,0.831],"zheng3.mp3":[0.336,0.967],"zhi1.mp3":[0.121,0.892],"zhong1.mp3":[0.232,0.959],"zi1.mp3":[0.08,0.731],"zi3.mp3":[0.274,1.01],"zi4.mp3":[0.325,0.695],"zou3.mp3":[0.051,1.124],"zui3.mp3":[0.155,0.951],"zuo3.mp3":[0.146,1.083],"zuo4.mp3":[0.085,0.668],"ei1.m4a":[0.0,0.72],"bo0.mp3":[0.198,0.953]};
+
+    // 13课标题 100% 统编人教版真人母带 MP3 播放序列（彻底消除机械 TTS 与字母误读，快速明晰连播）
+    this.lessonTitleSequences = {
+      1: ['di4.mp3', 'yi1.mp3', 'ke4.mp3', 90, 'a1.mp3', 50, 'o1.mp3', 50, 'e1.mp3'],
+      2: ['di4.mp3', 'er4.mp3', 'ke4.mp3', 90, 'yi1.mp3', 50, 'wu1.mp3', 50, 'yu1.mp3', 50, 'yi1.mp3', 50, 'wu1.mp3'],
+      3: ['di4.mp3', 'san1.mp3', 'ke4.mp3', 90, 'bo1.mp3', 50, 'po1.mp3', 50, 'mo1.mp3', 50, 'fo2.mp3'],
+      4: ['di4.mp3', 'si4.mp3', 'ke4.mp3', 90, 'de2.mp3', 50, 'te4.mp3', 50, 'ne4.mp3', 50, 'le4.mp3'],
+      5: ['di4.mp3', 'wu3.mp3', 'ke4.mp3', 90, 'ge1.mp3', 50, 'ke1.mp3', 50, 'he1.mp3'],
+      6: ['di4.mp3', 'liu4.mp3', 'ke4.mp3', 90, 'ji1.mp3', 50, 'qi1.mp3', 50, 'xi1.mp3'],
+      7: ['di4.mp3', 'qi1.mp3', 'ke4.mp3', 90, 'zi1.mp3', 50, 'ci1.mp3', 50, 'si1.mp3'],
+      8: ['di4.mp3', 'ba1.mp3', 'ke4.mp3', 90, 'zhi1.mp3', 50, 'chi1.mp3', 50, 'shi1.mp3', 50, 'ri4.mp3'],
+      9: ['di4.mp3', 'jiu3.mp3', 'ke4.mp3', 90, 'ai1.mp3', 50, 'ei1.m4a', 50, 'wei1.mp3'],
+      10: ['di4.mp3', 'shi2.mp3', 'ke4.mp3', 90, 'ao1.mp3', 50, 'ou1.mp3', 50, 'you1.mp3'],
+      11: ['di4.mp3', 'shi2.mp3', 'yi1.mp3', 'ke4.mp3', 90, 'ye1.mp3', 50, 'yue4.mp3', 50, 'er2.mp3'],
+      12: ['di4.mp3', 'shi2.mp3', 'er4.mp3', 'ke4.mp3', 90, 'an1.mp3', 50, 'en1.mp3', 50, 'yin1.mp3', 50, 'wen1.mp3', 50, 'yun1.mp3'],
+      13: ['di4.mp3', 'shi2.mp3', 'san1.mp3', 'ke4.mp3', 90, 'ang1.mp3', 50, 'eng1.mp3', 50, 'ying1.mp3', 50, 'weng1.mp3']
+    };
+
+    // 13课认读儿歌 100% 纯真人母带生动连播序列（字正腔圆，欢快节奏，加速畅快朗读）
+    this.lessonRhymesSequences = {
+      1: [
+        'zhang1.mp3', 'da4.mp3', 'zui3.mp3', 'ba1.mp3', 16, 'a1.mp3', 45, 'a1.mp3', 45, 'a1.mp3', 140,
+        'yuan2.mp3', 'yuan2.mp3', 'zui3.mp3', 'ba1.mp3', 16, 'o1.mp3', 45, 'o1.mp3', 45, 'o1.mp3', 140,
+        'qing1.mp3', 'qing1.mp3', 'chi2.mp3', 'tang2.mp3', 'bai2.mp3', 'e2.mp3', 'jiao4.mp3', 16, 'e1.mp3', 45, 'e1.mp3', 45, 'e1.mp3'
+      ],
+      2: [
+        'ya2.mp3', 'chi3.mp3', 'dui4.mp3', 'qi2.mp3', 16, 'yi1.mp3', 45, 'yi1.mp3', 45, 'yi1.mp3', 140,
+        'zui3.mp3', 'ba1.mp3', 'tu1.mp3', 'chu1.mp3', 16, 'wu1.mp3', 45, 'wu1.mp3', 45, 'wu1.mp3', 140,
+        'chui1.mp3', 'qi3.mp3', 'di2.mp3', 'zi3.mp3', 16, 'yu1.mp3', 45, 'yu1.mp3', 45, 'yu1.mp3', 140,
+        'da4.mp3', 'yi1.mp3', 'da4.mp3', 'wu1.mp3', 'lai2.mp3', 'ba3.mp3', 'men2.mp3', 140,
+        'yi1.mp3', 'wu1.mp3', 'yu1.mp3', 'zheng3.mp3', 'ti3.mp3', 'du2.mp3'
+      ],
+      3: [
+        'you4.mp3', 'xia4.mp3', 'ban4.mp3', 'yuan2.mp3', 16, 'bo1.mp3', 45, 'bo1.mp3', 45, 'bo1.mp3', 140,
+        'you4.mp3', 'shang4.mp3', 'ban4.mp3', 'yuan2.mp3', 16, 'po1.mp3', 45, 'po1.mp3', 45, 'po1.mp3', 140,
+        'liang3.mp3', 'ge4.mp3', 'men2.mp3', 'dong4.mp3', 16, 'mo1.mp3', 45, 'mo1.mp3', 45, 'mo1.mp3', 140,
+        'yi4.mp3', 'gen1.mp3', 'guai3.mp3', 'gun4.mp3', 16, 'fo2.mp3', 45, 'fo2.mp3', 45, 'fo2.mp3'
+      ],
+      4: [
+        'zuo3.mp3', 'xia4.mp3', 'ban4.mp3', 'yuan2.mp3', 16, 'de2.mp3', 45, 'de2.mp3', 45, 'de2.mp3', 140,
+        'san3.mp3', 'bing3.mp3', 'chao2.mp3', 'xia4.mp3', 16, 'te4.mp3', 45, 'te4.mp3', 45, 'te4.mp3', 140,
+        'yi2.mp3', 'ge4.mp3', 'men2.mp3', 'dong4.mp3', 16, 'ne4.mp3', 45, 'ne4.mp3', 45, 'ne4.mp3', 140,
+        'yi4.mp3', 'gen1.mp3', 'xiao3.mp3', 'bang4.mp3', 16, 'le4.mp3', 45, 'le4.mp3', 45, 'le4.mp3'
+      ],
+      5: [
+        'jiu3.mp3', 'zi4.mp3', 'jia1.mp3', 'wan1.mp3', 16, 'ge1.mp3', 45, 'ge1.mp3', 45, 'ge1.mp3', 140,
+        'yi4.mp3', 'ting3.mp3', 'ji1.mp3', 'qiang1.mp3', 16, 'ke1.mp3', 45, 'ke1.mp3', 45, 'ke1.mp3', 140,
+        'yi4.mp3', 'ba3.mp3', 'yi3.mp3', 'zi3.mp3', 16, 'he1.mp3', 45, 'he1.mp3', 45, 'he1.mp3'
+      ],
+      6: [
+        'mu3.mp3', 'ji1.mp3', 'mu3.mp3', 'ji1.mp3', 16, 'ji1.mp3', 45, 'ji1.mp3', 45, 'ji1.mp3', 140,
+        'zuo3.mp3', 'shang4.mp3', 'ban4.mp3', 'yuan2.mp3', 16, 'qi1.mp3', 45, 'qi1.mp3', 45, 'qi1.mp3', 140,
+        'dao1.mp3', 'qie1.mp3', 'xi1.mp3', 'gua1.mp3', 16, 'xi1.mp3', 45, 'xi1.mp3', 45, 'xi1.mp3', 140,
+        'xiao3.mp3', 'yu1.mp3', 'jian4.mp3', 'dao4.mp3', 'ji1.mp3', 'qi1.mp3', 'xi1.mp3', 140,
+        'tuo1.mp3', 'mao4.mp3', 'xing2.mp3', 'li3.mp3', 'qu4.mp3', 'liang3.mp3', 'dian3.mp3'
+      ],
+      7: [
+        'xiang4.mp3', 'ge4.mp3', 'er4.mp3', 'zi4.mp3', 16, 'zi1.mp3', 45, 'zi1.mp3', 45, 'zi1.mp3', 140,
+        'ban4.mp3', 'ge4.mp3', 'yuan2.mp3', 'quan1.mp3', 16, 'ci1.mp3', 45, 'ci1.mp3', 45, 'ci1.mp3', 140,
+        'ban4.mp3', 'ge4.mp3', 'ba1.mp3', 'zi4.mp3', 16, 'si1.mp3', 45, 'si1.mp3', 45, 'si1.mp3', 140,
+        'zi1.mp3', 'ci1.mp3', 'si1.mp3', 'zheng3.mp3', 'ti3.mp3', 'du2.mp3', 140,
+        'ping2.mp3', 'she2.mp3', 'sheng1.mp3', 'yin1.mp3', 'yao4.mp3', 'ji4.mp3', 'lao2.mp3'
+      ],
+      8: [
+        'zhi1.mp3', 'mao2.mp3', 'yi1.mp3', 16, 'zhi1.mp3', 45, 'zhi1.mp3', 45, 'zhi1.mp3', 140,
+        'chi1.mp3', 'ping2.mp3', 'guo3.mp3', 16, 'chi1.mp3', 45, 'chi1.mp3', 45, 'chi1.mp3', 140,
+        'xiao3.mp3', 'shi1.mp3', 'zi3.mp3', 16, 'shi1.mp3', 45, 'shi1.mp3', 45, 'shi1.mp3', 140,
+        'yi4.mp3', 'lun2.mp3', 'hong2.mp3', 'ri4.mp3', 16, 'ri4.mp3', 45, 'ri4.mp3', 45, 'ri4.mp3'
+      ],
+      9: [
+        'jin3.mp3', 'ai1.mp3', 'zai4.mp3', 'yi4.mp3', 'qi3.mp3', 16, 'ai1.mp3', 45, 'ai1.mp3', 45, 'ai1.mp3', 140,
+        'yong4.mp3', 'li4.mp3', 'ba2.mp3', 'luo2.mp3', 'bo0.mp3', 16, 'ei1.m4a', 45, 'ei1.m4a', 45, 'ei1.m4a', 140,
+        'wei2.mp3', 'shang4.mp3', 'hong2.mp3', 'wei2.mp3', 'jin1.mp3', 16, 'wei1.mp3', 45, 'wei1.mp3', 45, 'wei1.mp3'
+      ],
+      10: [
+        'mian2.mp3', 'ao3.mp3', 'nuan3.mp3', 'huo2.mp3', 16, 'ao1.mp3', 45, 'ao1.mp3', 45, 'ao1.mp3', 140,
+        'hai3.mp3', 'ou1.mp3', 'fei1.mp3', 'xiang2.mp3', 16, 'ou1.mp3', 45, 'ou1.mp3', 45, 'ou1.mp3', 140,
+        'xiao3.mp3', 'yu2.mp3', 'you2.mp3', 'shui3.mp3', 16, 'you1.mp3', 45, 'you1.mp3', 45, 'you1.mp3', 140,
+        'yi1.mp3', 'he2.mp3', 'wu1.mp3', 'bing4.mp3', 'zai4.mp3', 'hou4.mp3', 140,
+        'biao1.mp3', 'diao4.mp3', 'biao1.mp3', 'zai4.mp3', 'wu1.mp3', 'shang4.mp3', 'tou2.mp3'
+      ],
+      11: [
+        'yi2.mp3', 'pian4.mp3', 'shu4.mp3', 'ye4.mp3', 16, 'ye1.mp3', 45, 'ye1.mp3', 45, 'ye1.mp3', 140,
+        'yue4.mp3', 'ya2.mp3', 'wan1.mp3', 'wan1.mp3', 16, 'yue4.mp3', 45, 'yue4.mp3', 45, 'yue4.mp3', 140,
+        'xiao3.mp3', 'xiao3.mp3', 'er3.mp3', 'duo1.mp3', 16, 'er2.mp3', 45, 'er2.mp3', 45, 'er2.mp3', 140,
+        'er2.mp3', 'shi4.mp3', 'te4.mp3', 'shu1.mp3', 'xiao3.mp3', 'yun4.mp3', 'mu3.mp3', 140,
+        'cong2.mp3', 'bu4.mp3', 'he2.mp3', 'sheng1.mp3', 'mu3.mp3', 'zuo4.mp3', 'peng2.mp3', 'you3.mp3'
+      ],
+      12: [
+        'tian1.mp3', 'an1.mp3', 'men2.mp3', 'qian2.mp3', 16, 'an1.mp3', 45, 'an1.mp3', 45, 'an1.mp3', 140,
+        'an4.mp3', 'xia4.mp3', 'men2.mp3', 'ling2.mp3', 16, 'en1.mp3', 45, 'en1.mp3', 45, 'en1.mp3', 140,
+        'shu4.mp3', 'lin2.mp3', 'shen1.mp3', 'chu4.mp3', 16, 'yin1.mp3', 45, 'yin1.mp3', 45, 'yin1.mp3', 140,
+        'wen1.mp3', 'shui3.mp3', 're4.mp3', 'cha2.mp3', 16, 'wen1.mp3', 45, 'wen1.mp3', 45, 'wen1.mp3', 140,
+        'bai2.mp3', 'yun2.mp3', 'piao1.mp3', 'piao1.mp3', 16, 'yun1.mp3', 45, 'yun1.mp3', 45, 'yun1.mp3'
+      ],
+      13: [
+        'shan1.mp3', 'yang2.mp3', 'ang2.mp3', 'shou3.mp3', 16, 'ang1.mp3', 45, 'ang1.mp3', 45, 'ang1.mp3', 140,
+        'qing1.mp3', 'chen2.mp3', 'kan4.mp3', 'deng1.mp3', 16, 'eng1.mp3', 45, 'eng1.mp3', 45, 'eng1.mp3', 140,
+        'xiong2.mp3', 'ying1.mp3', 'zhan3.mp3', 'chi4.mp3', 16, 'ying1.mp3', 45, 'ying1.mp3', 45, 'ying1.mp3', 140,
+        'nao4.mp3', 'zhong1.mp3', 'zou3.mp3', 'dong4.mp3', 16, 'weng1.mp3', 45, 'weng1.mp3', 45, 'weng1.mp3'
+      ]
     };
 
     this.initAudioContext();
@@ -556,6 +706,10 @@ class PinyinAudioEngine {
     }
 
     if (base) {
+      // 规范化：j, q, x 与 ü 相拼在音频库中统一为 ju, qu, xu (小ü脱帽)
+      if (['j', 'q', 'x'].some(init => base.startsWith(init))) {
+        base = base.replace(/ü/g, 'u');
+      }
       return `${base}${tone}.mp3`;
     }
 
@@ -592,13 +746,21 @@ class PinyinAudioEngine {
       }
     }
 
+    if (filename === 'ei1.mp3') {
+      filename = 'ei1.m4a';
+    }
+    const realPath = 'audio/' + filename;
+
     let audio = this.audioCache.get(filename);
     if (!audio) {
-      audio = new Audio(path);
+      audio = new Audio(realPath);
       this.audioCache.set(filename, audio);
-    } else {
-      try { audio.currentTime = 0; } catch (e) {}
     }
+
+    const cue = this.audioCues ? this.audioCues[filename] : null;
+    try {
+      audio.currentTime = cue ? cue[0] : 0;
+    } catch (e) {}
 
     audio.volume = this.isBoosted ? 1.0 : 0.95;
     this.currentPlayingAudio = audio;
@@ -648,24 +810,28 @@ class PinyinAudioEngine {
       return;
     }
 
-    // 2. 检查形如 "天，蓝天" 的复合字词结构
-    if (clean.includes('，') && clean.length <= 10) {
-      const parts = clean.split('，');
-      const firstPart = parts[0].trim();
-      const firstAudio = this.pinyinToAudioFile(firstPart);
-      if (firstAudio) {
-        // 先播放第一个字/音的纯正真人母带，结束后朗读扩展词
-        this.playAudioFile(firstAudio, () => {
-          const tId = setTimeout(() => {
-            this.speakTTS(parts[1].trim(), onEnded);
-          }, 250);
-          this.ladderTimers.push(tId);
-        });
+    // 2. 检查形如 "【天】" 或 "【b】" 结构 (提取核心音播放纯正真人母带)
+    const bracketMatch = clean.match(/【(.*?)】/);
+    if (bracketMatch && bracketMatch[1]) {
+      const innerAudio = this.pinyinToAudioFile(bracketMatch[1].trim());
+      if (innerAudio) {
+        this.playAudioFile(innerAudio, onEnded);
         return;
       }
     }
 
-    // 3. 长句或系统提示语（如“答对啦！”、“请摘下苹果”），采用自然普通话播报
+    // 3. 检查形如 "天，蓝天" 的复合字词结构 (纯净播放真人母带，绝不追加机械TTS尾巴)
+    if (clean.includes('，') && clean.length <= 15) {
+      const parts = clean.split('，');
+      const firstPart = parts[0].trim();
+      const firstAudio = this.pinyinToAudioFile(firstPart);
+      if (firstAudio) {
+        this.playAudioFile(firstAudio, onEnded);
+        return;
+      }
+    }
+
+    // 4. 系统兜底朗读
     this.speakTTS(clean, onEnded, rate);
   }
 
@@ -673,10 +839,15 @@ class PinyinAudioEngine {
    * 纯文本系统朗读（已配置好温暖自然小学教师音色）
    */
   speakTTS(text, onEnded = null, rate = null) {
-    const clean = (text || '').trim();
+    let clean = (text || '').trim();
     if (!clean) {
       if (onEnded) setTimeout(onEnded, 10);
       return;
+    }
+
+    // 智能防呆：如果文本包含英文字母/拼音，自动转为地道中文呼读音，杜绝英文机械发音
+    if (/[a-zA-ZüÜ]/.test(clean)) {
+      clean = this.convertPinyinForRhyme(clean);
     }
 
     if (this.currentPlayingAudio) {
@@ -724,6 +895,273 @@ class PinyinAudioEngine {
       this.synth.resume();
     }
     this.synth.speak(utter);
+  }
+
+  /**
+   * 将儿歌口诀或标题中的拼音字母精准替换为标准中文呼读音汉字
+   * @param {string} text - 原始儿歌口诀文本
+   * @returns {string} - 转换后的纯中文发音文本
+   */
+  convertPinyinForRhyme(text) {
+    if (!text) return '';
+    if (!this._rhymeRegex && this.rhymePhoneticMap) {
+      const keys = Object.keys(this.rhymePhoneticMap).sort((a, b) => b.length - a.length);
+      const pattern = keys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+      this._rhymeRegex = new RegExp(pattern, 'g');
+    }
+    if (!this._rhymeRegex) return text;
+    return text.replace(this._rhymeRegex, (match) => {
+      return this.rhymePhoneticMap[match] || match;
+    });
+  }
+
+  /**
+   * 获取课文标题的标准规范普通话朗读文本
+   * @param {object|number|string} lesson - 课文对象、ID或标题文本
+   * @returns {string}
+   */
+  getLessonTitleSpokenText(lesson) {
+    if (!lesson) return '';
+    if (typeof lesson === 'number' && this.lessonTitlesSpokenMap[lesson]) {
+      return this.lessonTitlesSpokenMap[lesson];
+    }
+    if (typeof lesson === 'object') {
+      if (lesson.id && this.lessonTitlesSpokenMap[lesson.id]) {
+        return this.lessonTitlesSpokenMap[lesson.id];
+      }
+      if (lesson.title) {
+        return this.convertTitleStringToSpoken(lesson.title);
+      }
+    }
+    return this.convertTitleStringToSpoken(String(lesson));
+  }
+
+  /**
+   * 将非标准课文标题转换为规范朗读文本
+   */
+  convertTitleStringToSpoken(titleStr) {
+    const numMap = {
+      '1': '一', '2': '二', '3': '三', '4': '四', '5': '五',
+      '6': '六', '7': '七', '8': '八', '9': '九', '10': '十',
+      '11': '十一', '12': '十二', '13': '十三'
+    };
+    let spoken = (titleStr || '').replace(/第\s*(\d+)\s*课\s*/, (m, n) => `第${numMap[n] || n}课：`);
+    return this.convertPinyinForRhyme(spoken);
+  }
+
+  /**
+   * 多段高保真母带级联连播引擎 (消除机械TTS，以标准人声与欢快节奏无缝播放)
+   * 支持指定各单字音频文件、音节有效时长裁剪与段落间延时停顿
+   * @param {Array} items - 音频文件名列表或延时毫秒数值，如 ['di4.mp3', 'yi1.mp3', 'ke4.mp3', 180, 'a1.mp3']
+   * @param {function} onEnded - 连播结束回调
+   * @param {object} options - { playbackRate: 1.06, gapMs: 30 }
+   */
+  playAudioSequence(items, onEnded = null, options = {}) {
+    this.stopAllAudio();
+    if (!items || items.length === 0) {
+      if (onEnded) setTimeout(onEnded, 10);
+      return;
+    }
+
+    const rate = options.playbackRate || 1.06;
+    const baseGap = options.gapMs !== undefined ? options.gapMs : 30;
+    let idx = 0;
+
+    const playNext = () => {
+      if (idx >= items.length) {
+        if (onEnded) onEnded();
+        return;
+      }
+
+      const item = items[idx++];
+
+      // 1. 如果是延时数值（毫秒），如段落呼吸停顿 320ms
+      if (typeof item === 'number') {
+        const timer = setTimeout(playNext, item);
+        this.ladderTimers.push(timer);
+        return;
+      }
+
+      // 2. 如果是延时对象 { pause: 200 }
+      if (typeof item === 'object' && item && item.pause) {
+        const timer = setTimeout(playNext, item.pause);
+        this.ladderTimers.push(timer);
+        return;
+      }
+
+      // 3. 正常音频文件名
+      let filename = String(item).trim();
+      if (!filename) {
+        playNext();
+        return;
+      }
+
+      if (filename === 'ei1.mp3') {
+        filename = 'ei1.m4a';
+      }
+
+      const cue = this.audioCues ? this.audioCues[filename] : null;
+      const startOffset = cue ? cue[0] : 0;
+      const activeDur = cue ? cue[1] : 0.85;
+
+      const path = 'audio/' + filename;
+      let audio = this.audioCache.get(filename);
+      if (!audio) {
+        audio = new Audio(path);
+        this.audioCache.set(filename, audio);
+      }
+
+      this.currentPlayingAudio = audio;
+      audio.volume = this.isBoosted ? 1.0 : 0.95;
+      audio.playbackRate = rate;
+
+      try {
+        audio.currentTime = startOffset;
+      } catch (e) {}
+
+      let timer = null;
+      let advanced = false;
+      const advance = () => {
+        if (advanced) return;
+        advanced = true;
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+        playNext();
+      };
+
+      // 结合波形有效发音时长与语速，提前调度下一个音，消除长达 1~2 秒的尾部静音，实现自然流畅说唱
+      const durationMs = Math.round((activeDur / rate) * 1000) + baseGap;
+      timer = setTimeout(advance, durationMs);
+      this.ladderTimers.push(timer);
+
+      audio.onended = () => {
+        advance();
+      };
+
+      const p = audio.play();
+      if (p !== undefined) {
+        p.catch(err => {
+          console.warn('Audio sequence step failed:', filename, err);
+          advance();
+        });
+      }
+    };
+
+    playNext();
+  }
+
+  /**
+   * 朗读课文标题
+   * 100% 优先采用真人教学母带录音连播（第X课 + 拼音标准呼读音），彻底解决机械音与字母误读
+   * @param {object|number|string} lesson
+   * @param {function} onEnded
+   */
+  speakLessonTitle(lesson, onEnded = null) {
+    let lessonId = null;
+    if (typeof lesson === 'number') {
+      lessonId = lesson;
+    } else if (lesson && lesson.id) {
+      lessonId = lesson.id;
+    } else if (typeof lesson === 'string') {
+      const m = lesson.match(/第\s*(\d+)\s*课/);
+      if (m) lessonId = parseInt(m[1], 10);
+    }
+
+    if (lessonId && this.lessonTitleSequences && this.lessonTitleSequences[lessonId]) {
+      this.playAudioSequence(this.lessonTitleSequences[lessonId], onEnded, {
+        playbackRate: 1.18,
+        gapMs: 15
+      });
+      return;
+    }
+
+    // 兜底降级处理
+    const spoken = this.getLessonTitleSpokenText(lesson);
+    if (!spoken) {
+      if (onEnded) setTimeout(onEnded, 10);
+      return;
+    }
+    this.speakTTS(spoken, onEnded, 1.15);
+  }
+
+  /**
+   * 朗读记忆口诀与儿歌
+   * 100% 优先采用真人教学母带录音连播，字正腔圆，自然清晰，语速活泼欢快，彻底消除机械TTS
+   * @param {object|string} lessonOrText - 课时对象、儿歌文本或课时ID
+   * @param {function} onEnded
+   */
+  speakRhyme(lessonOrText, onEnded = null) {
+    let lessonId = null;
+    if (typeof lessonOrText === 'number') {
+      lessonId = lessonOrText;
+    } else if (lessonOrText && lessonOrText.id) {
+      lessonId = lessonOrText.id;
+    } else if (typeof lessonOrText === 'string') {
+      // 通过特色首句智能匹配课时
+      const text = lessonOrText.trim();
+      const matchMap = {
+        '张大嘴巴': 1, '牙齿对齐': 2, '右下半圆': 3, '左下半圆': 4,
+        '9字加弯': 5, '母鸡母鸡': 6, '像个2字': 7, '织毛衣': 8,
+        '紧挨在一起': 9, '棉袄暖和': 10, '一片树叶': 11, '天安门前': 12, '山羊昂首': 13
+      };
+      for (const [key, id] of Object.entries(matchMap)) {
+        if (text.includes(key)) {
+          lessonId = id;
+          break;
+        }
+      }
+    }
+
+    if (lessonId && this.lessonRhymesSequences && this.lessonRhymesSequences[lessonId]) {
+      // 语速 1.25，间隔 10ms：充分满足儿歌口诀欢快、敏捷、富有说唱律动的高速朗读需求
+      this.playAudioSequence(this.lessonRhymesSequences[lessonId], onEnded, {
+        playbackRate: 1.25,
+        gapMs: 10
+      });
+      return;
+    }
+
+    // 兜底降级处理
+    const rhymeText = typeof lessonOrText === 'string' ? lessonOrText : (lessonOrText && lessonOrText.rhyme ? lessonOrText.rhyme : '');
+    if (!rhymeText) {
+      if (onEnded) setTimeout(onEnded, 10);
+      return;
+    }
+    const spoken = this.convertPinyinForRhyme(rhymeText);
+    this.speakTTS(spoken, onEnded, 1.22);
+  }
+
+  /**
+   * 朗读“老师辅导小妙招”
+   * 特点：准确转换中文与拼音呼读音，消除英文机械音，语速适度加快（1.15）生动明快
+   * @param {object|string} lessonOrText - 课时对象或辅导文字
+   * @param {function} onEnded
+   */
+  speakTeacherGuide(lessonOrText, onEnded = null) {
+    let rawText = '';
+    if (typeof lessonOrText === 'string') {
+      rawText = lessonOrText;
+    } else if (lessonOrText && lessonOrText.guideText) {
+      rawText = lessonOrText.guideText;
+    }
+    if (!rawText) {
+      if (onEnded) setTimeout(onEnded, 10);
+      return;
+    }
+
+    // 清理特殊符号与复合拼写
+    let cleaned = rawText.replace(/★/g, '');
+    cleaned = cleaned.replace(/g-u-ā/g, '哥、乌、啊');
+    cleaned = cleaned.replace(/g-u-a/g, '哥、乌、啊');
+    cleaned = cleaned.replace(/\bju\b/g, '居');
+    cleaned = cleaned.replace(/\bqu\b/g, '区');
+    cleaned = cleaned.replace(/\bxu\b/g, '须');
+
+    const spoken = this.convertPinyinForRhyme(cleaned);
+    // 语速 1.15：满足老师生动讲解、明快易懂的需要
+    this.speakTTS(spoken, onEnded, 1.15);
   }
 
   /**
@@ -776,23 +1214,20 @@ class PinyinAudioEngine {
   }
 
   /**
-   * 读汉字并带常用词汇（汉字优先真人母带）
+   * 读汉字（100% 优先真人母带，绝不添加机械合成）
    */
   speakHanzi(char, word = '') {
     const file = this.charAudioMap[char];
     if (file) {
-      if (word) {
-        this.playAudioFile(file, () => {
-          setTimeout(() => {
-            this.speakTTS(word);
-          }, 300);
-        });
-      } else {
-        this.playAudioFile(file);
-      }
-    } else {
-      this.speakTTS(word ? `${char}，${word}` : char);
+      this.playAudioFile(file);
+      return;
     }
+    const pyFile = this.pinyinToAudioFile(char);
+    if (pyFile) {
+      this.playAudioFile(pyFile);
+      return;
+    }
+    this.speakTTS(char);
   }
 
   /**
@@ -810,10 +1245,10 @@ class PinyinAudioEngine {
     this.stopAllAudio();
     this.ensureAudioContext();
 
-    const { initial, tone, syllable, word } = stepData;
+    const { initial, tone, syllable, word, isInvalid, reason } = stepData;
     const initialFile = this.pinyinToAudioFile(initial);
     const toneFile = this.pinyinToAudioFile(tone);
-    const syllableFile = this.pinyinToAudioFile(syllable);
+    const syllableFile = isInvalid ? null : this.pinyinToAudioFile(syllable);
 
     // 第一步：真人声母呼读音
     if (onStepChange) onStepChange(1, initial);
@@ -828,11 +1263,25 @@ class PinyinAudioEngine {
             this.playTrainChug();
 
             const t3 = setTimeout(() => {
+              if (isInvalid) {
+                // 不存在的拼音组合：碰撞不成功，弹回提示并播放音效
+                this.playGentleOops();
+                if (onStepChange) onStepChange(4, { isInvalid: true, reason });
+                const t4 = setTimeout(() => {
+                  if (onStepChange) onStepChange(5, 'done');
+                }, 2200);
+                this.ladderTimers.push(t4);
+                return;
+              }
+
               // 第四步：两车相撞·纯正真人母带音节合读！(去除机械TTS朗读与电子重音)
-              if (onStepChange) onStepChange(4, syllable);
+              if (onStepChange) onStepChange(4, { isInvalid: false, syllable, word });
 
               this.playAudioFile(syllableFile, () => {
-                if (onStepChange) onStepChange(5, 'done');
+                const t4 = setTimeout(() => {
+                  if (onStepChange) onStepChange(5, 'done');
+                }, 1200);
+                this.ladderTimers.push(t4);
               }, false);
             }, 600);
             this.ladderTimers.push(t3);
@@ -847,6 +1296,10 @@ class PinyinAudioEngine {
   // ==========================================
   // Web Audio API 纯原生高保真音效生成器
   // ==========================================
+
+  playStar() {
+    this.playSuccess();
+  }
 
   playSuccess() {
     if (!this.audioCtx) return;

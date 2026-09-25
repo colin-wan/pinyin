@@ -76,7 +76,7 @@ class AppState {
     const modal = document.getElementById('modal-eye-protect');
     if (modal) modal.classList.remove('hidden');
     if (window.audioEngine) {
-      window.audioEngine.speak('小勇士，已经学习了一会儿啦，快眨眨眼，看看窗外的风景吧！');
+      window.audioEngine.playGentleOops();
     }
   }
 
@@ -170,33 +170,42 @@ class PinyinApp {
       this.openParentModal();
     });
 
+    // 盲盒扭蛋机按钮
+    document.getElementById('btn-open-gacha')?.addEventListener('click', () => {
+      if (window.pinyinGachaMachine) {
+        window.pinyinGachaMachine.openGachaModal();
+      }
+    });
+
     // 护眼弹窗关闭按钮
     document.getElementById('btn-close-eye-protect')?.addEventListener('click', () => {
       document.getElementById('modal-eye-protect')?.classList.add('hidden');
     });
 
     // 屏幕时间奖励领取按钮（顶部）
-    document.getElementById('btn-claim-reward')?.addEventListener('click', () => {
+    document.getElementById('btn-claim-reward')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       if (window.screenTimeLock) {
-        if (window.screenTimeLock.state.isRewardUnlocked) {
-          window.screenTimeLock.claimReward();
-        } else if (window.screenTimeLock.state.isRewardActive) {
-          if (window.audioEngine) window.audioEngine.speak('15分钟奖励时间正在使用中哦！');
-        } else {
-          const timeRem = Math.max(0, 15 - Math.floor(window.screenTimeLock.state.sessionStudySeconds / 60));
-          const acc = window.screenTimeLock.getAccuracy();
-          if (window.audioEngine) {
-            window.audioEngine.playGentleOops();
-            window.audioEngine.speak(`小勇士加油！还需认真学习 ${timeRem} 分钟，且正确率达到 90% 以上（当前 ${acc}%）就可以自动解锁15分钟iPad屏幕使用奖励啦！`);
-          }
-        }
+        window.screenTimeLock.showRewardStatusModal();
       }
     });
 
     // 弹窗中的立即领取按钮
-    document.getElementById('btn-modal-claim-now')?.addEventListener('click', () => {
+    document.getElementById('btn-modal-claim-now')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       if (window.screenTimeLock) {
-        window.screenTimeLock.claimReward();
+        window.screenTimeLock.claimReward(true);
+      }
+    });
+
+    // 弹窗中的稍后领取按钮
+    document.getElementById('btn-close-reward-ready-modal')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (window.screenTimeLock) {
+        window.screenTimeLock.hideRewardReadyModal();
       }
     });
 
@@ -211,9 +220,6 @@ class PinyinApp {
         if (iconEl) iconEl.innerText = newState ? '🔊' : '🔉';
         if (newState) {
           window.audioEngine.playSuccess();
-          window.audioEngine.speak('超大音量增强已开启！发音更洪亮清晰！');
-        } else {
-          window.audioEngine.speak('超大音量增强已关闭');
         }
       }
     });
@@ -230,6 +236,19 @@ class PinyinApp {
     document.getElementById('btn-lock-parent-override')?.addEventListener('click', () => {
       if (window.screenTimeLock) {
         window.screenTimeLock.showPinKeypadModal();
+      }
+    });
+
+    // 屏幕锁：手动再次触发快捷指令恢复锁定
+    document.getElementById('btn-lock-retrigger-shortcut')?.addEventListener('click', () => {
+      if (window.screenTimeLock) {
+        window.screenTimeLock.triggerShortcut(null, 'lock');
+        const txtEl = document.getElementById('btn-lock-retrigger-text');
+        if (txtEl) {
+          const orig = txtEl.innerText;
+          txtEl.innerText = '✅ 指令已发送！若弹出提示请点“打开”';
+          setTimeout(() => { txtEl.innerText = orig; }, 3500);
+        }
       }
     });
 
@@ -373,7 +392,6 @@ class PinyinApp {
         } else {
           if (window.audioEngine) {
             window.audioEngine.playGentleOops();
-            window.audioEngine.speak('前面的关卡还没通关哦，跟着小脚印一步步来吧！');
           }
         }
       });
@@ -393,7 +411,7 @@ class PinyinApp {
     this.showView('view-lesson');
     this.renderLessonContainer();
     if (window.audioEngine) {
-      window.audioEngine.speak(`进入${lesson.title}`);
+      window.audioEngine.playSuccess();
     }
   }
 
@@ -413,7 +431,14 @@ class PinyinApp {
             </button>
             <div>
               <span class="text-xs text-amber-700 font-extrabold bg-amber-50 px-2.5 py-0.5 rounded-full">${lesson.unit}</span>
-              <h2 class="text-2xl font-black text-neutral-800">${lesson.title}</h2>
+              <div class="flex items-center space-x-2 mt-0.5">
+                <h2 id="lesson-header-title-text" class="text-2xl font-black text-neutral-800 cursor-pointer hover:text-amber-700 transition flex items-center gap-1.5" title="点击朗读课文标题">
+                  <span>${lesson.title}</span>
+                </h2>
+                <button id="btn-speak-header-title" class="w-8 h-8 rounded-full bg-amber-100 hover:bg-amber-200 active:scale-95 text-amber-800 flex items-center justify-center text-sm shadow-xs transition" title="朗读课文标题">
+                  🔊
+                </button>
+              </div>
             </div>
           </div>
 
@@ -447,6 +472,19 @@ class PinyinApp {
       this.showView('view-map');
     });
 
+    // 绑定顶部课文标题朗读 (语速适度加快 1.08，发音纯正字正腔圆)
+    const handleSpeakHeaderTitle = () => {
+      const btn = document.getElementById('btn-speak-header-title');
+      if (btn) btn.classList.add('ring-2', 'ring-amber-400', 'scale-110');
+      if (window.audioEngine) {
+        window.audioEngine.speakLessonTitle(lesson, () => {
+          if (btn) btn.classList.remove('ring-2', 'ring-amber-400', 'scale-110');
+        });
+      }
+    };
+    document.getElementById('btn-speak-header-title')?.addEventListener('click', handleSpeakHeaderTitle);
+    document.getElementById('lesson-header-title-text')?.addEventListener('click', handleSpeakHeaderTitle);
+
     // 绑定步骤标签
     container.querySelectorAll('.lesson-step-tab').forEach(tab => {
       tab.addEventListener('click', (e) => {
@@ -467,8 +505,23 @@ class PinyinApp {
       // 步骤 1：认读儿歌
       stage.innerHTML = `
         <div class="bg-white rounded-3xl p-6 shadow-md border-4 border-amber-200 space-y-6">
+          <!-- 课文标题朗读横幅卡片 -->
+          <div class="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-200 px-5 py-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-xs">
+            <div class="flex items-center space-x-2.5">
+              <span class="text-2xl">📖</span>
+              <div>
+                <span class="text-xs font-bold text-amber-700 block">${lesson.unit}</span>
+                <span class="text-lg font-black text-amber-950">${lesson.title}</span>
+              </div>
+            </div>
+            <button id="btn-speak-step-title" class="flex items-center space-x-1.5 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 active:scale-95 text-amber-950 font-black px-4 py-2 rounded-full shadow-sm text-xs transition">
+              <span>🔊</span>
+              <span id="btn-speak-step-title-text">朗读课文标题</span>
+            </button>
+          </div>
+
           <!-- 核心字母大卡片 -->
-          <div class="flex flex-wrap items-center justify-center gap-6 py-4">
+          <div class="flex flex-wrap items-center justify-center gap-6 py-2">
             ${lesson.targetLetters.map(letter => `
               <div class="lesson-letter-card flex flex-col items-center bg-gradient-to-b from-amber-50 to-orange-50 hover:to-orange-100 border-4 border-amber-300 rounded-3xl p-6 shadow-md cursor-pointer transition active:scale-95 group" data-letter="${letter}">
                 <span class="text-7xl font-black text-amber-900 font-mono tracking-wider group-hover:scale-110 transition-transform">${letter}</span>
@@ -486,14 +539,25 @@ class PinyinApp {
               <span class="text-sm">人教统编版·同步记忆口诀</span>
             </div>
             <p class="text-xl font-extrabold text-amber-950 mt-2 leading-relaxed tracking-wide">${lesson.rhyme}</p>
-            <button id="btn-speak-rhyme" class="mt-3 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-extrabold px-5 py-2 rounded-full shadow text-sm transition">
-              🔊 朗读儿歌口诀
+            <button id="btn-speak-rhyme" class="mt-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-95 text-white font-extrabold px-6 py-2.5 rounded-full shadow-md text-sm transition flex items-center justify-center mx-auto space-x-2">
+              <span>🔊</span>
+              <span id="btn-speak-rhyme-text">欢快朗读儿歌口诀</span>
             </button>
           </div>
 
-          <!-- 教师贴士 -->
-          <div class="bg-sky-50 border border-sky-200 p-4 rounded-2xl text-xs text-sky-800 leading-relaxed font-medium">
-            💡 <strong>老师辅导小妙招：</strong> ${lesson.guideText}
+          <!-- 老师辅导小妙招卡片 -->
+          <div class="bg-gradient-to-r from-sky-50 to-blue-50 border-2 border-sky-200 p-4 sm:p-5 rounded-2xl shadow-xs">
+            <div class="flex items-center justify-between gap-3 mb-2">
+              <div class="flex items-center space-x-2 text-sky-950 font-extrabold text-sm">
+                <span class="text-xl">💡</span>
+                <span>老师辅导小妙招</span>
+              </div>
+              <button id="btn-speak-guide" class="flex items-center space-x-1.5 bg-sky-500 hover:bg-sky-600 active:scale-95 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-full shadow transition cursor-pointer">
+                <span>🔊</span>
+                <span id="btn-speak-guide-text">朗读小妙招</span>
+              </button>
+            </div>
+            <p class="text-xs sm:text-sm text-sky-900 leading-relaxed font-medium pl-1">${lesson.guideText}</p>
           </div>
         </div>
       `;
@@ -506,8 +570,79 @@ class PinyinApp {
         });
       });
 
+      // 绑定步骤内课文标题朗读按钮 (语速适度加快 1.08，发音纯正字正腔圆)
+      document.getElementById('btn-speak-step-title')?.addEventListener('click', () => {
+        const btn = document.getElementById('btn-speak-step-title');
+        const txt = document.getElementById('btn-speak-step-title-text');
+        if (btn) {
+          btn.disabled = true;
+          btn.classList.add('ring-2', 'ring-amber-400', 'scale-105');
+        }
+        if (txt) txt.textContent = '正在朗读标题...';
+
+        const resetBtn = () => {
+          if (btn) {
+            btn.disabled = false;
+            btn.classList.remove('ring-2', 'ring-amber-400', 'scale-105');
+          }
+          if (txt) txt.textContent = '朗读课文标题';
+        };
+
+        if (window.audioEngine) {
+          window.audioEngine.speakLessonTitle(lesson, resetBtn);
+        } else {
+          resetBtn();
+        }
+      });
+
+      // 绑定儿歌口诀朗读按钮 (纯正中文呼读音、语速 1.08 欢快儿歌节拍)
       document.getElementById('btn-speak-rhyme')?.addEventListener('click', () => {
-        if (window.audioEngine) window.audioEngine.speak(lesson.rhyme);
+        const btn = document.getElementById('btn-speak-rhyme');
+        const txt = document.getElementById('btn-speak-rhyme-text');
+        if (btn) {
+          btn.disabled = true;
+          btn.classList.add('ring-4', 'ring-amber-300', 'scale-105');
+        }
+        if (txt) txt.textContent = '正在欢快朗读儿歌...';
+
+        const resetBtn = () => {
+          if (btn) {
+            btn.disabled = false;
+            btn.classList.remove('ring-4', 'ring-amber-300', 'scale-105');
+          }
+          if (txt) txt.textContent = '欢快朗读儿歌口诀';
+        };
+
+        if (window.audioEngine) {
+          window.audioEngine.speakRhyme(lesson, resetBtn);
+        } else {
+          resetBtn();
+        }
+      });
+
+      // 绑定老师辅导小妙招朗读按钮 (中文与拼音发音完全正确、语速 1.08 生动明快)
+      document.getElementById('btn-speak-guide')?.addEventListener('click', () => {
+        const btn = document.getElementById('btn-speak-guide');
+        const txt = document.getElementById('btn-speak-guide-text');
+        if (btn) {
+          btn.disabled = true;
+          btn.classList.add('ring-4', 'ring-sky-300', 'scale-105');
+        }
+        if (txt) txt.textContent = '正在讲解妙招...';
+
+        const resetBtn = () => {
+          if (btn) {
+            btn.disabled = false;
+            btn.classList.remove('ring-4', 'ring-sky-300', 'scale-105');
+          }
+          if (txt) txt.textContent = '朗读小妙招';
+        };
+
+        if (window.audioEngine) {
+          window.audioEngine.speakTeacherGuide(lesson, resetBtn);
+        } else {
+          resetBtn();
+        }
       });
 
     } else if (this.currentLessonTab === 'tone') {
@@ -521,19 +656,44 @@ class PinyinApp {
       // 步骤 3：四线描红
       stage.innerHTML = `
         <div class="bg-white rounded-3xl p-5 shadow-md border-4 border-amber-200 space-y-4">
-          <div class="flex items-center justify-between">
+          <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 class="text-lg font-extrabold text-neutral-800">四线三格规范书写与描红</h3>
-              <p class="text-xs text-neutral-500">手指或触控笔沿着灰色虚线字模描一描，练习正确占格！</p>
+              <h3 class="text-lg font-black text-neutral-800">四线三格规范书写与描红</h3>
+              <p class="text-xs text-neutral-500">严格遵循人教版拼音规范：基准线对齐、标准笔画笔顺临摹！</p>
             </div>
             <!-- 切换正在描红的字母 -->
-            <div class="flex space-x-2">
+            <div class="flex flex-wrap gap-1.5">
               ${lesson.targetLetters.map((l, i) => `
-                <button class="lesson-write-letter-btn px-3 py-1.5 rounded-xl font-mono text-base font-extrabold transition ${i === 0 ? 'bg-amber-500 text-white shadow' : 'bg-neutral-100 text-neutral-700'}" data-letter="${l}">
-                  ${l}
+                <button class="lesson-write-letter-btn px-3.5 py-1.5 rounded-xl font-mono text-base font-black transition ${i === 0 ? 'bg-amber-500 text-white shadow-md scale-105' : 'bg-neutral-100 text-neutral-700 hover:bg-amber-100'}" data-letter="${l}">
+                  ${l === 'a' ? 'ɑ' : (l === 'g' ? 'ɡ' : l)}
                 </button>
               `).join('')}
             </div>
+          </div>
+
+          <!-- 规范书写要领与占格展示卡片 -->
+          <div id="lesson-stroke-guide-card" class="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-300 p-4 rounded-2xl shadow-xs">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center space-x-3.5">
+                <div class="w-13 h-13 bg-white rounded-2xl border-2 border-amber-400 flex items-center justify-center font-black text-2xl text-amber-950 font-mono shadow-xs">
+                  <span id="stroke-guide-char">ɑ</span>
+                </div>
+                <div>
+                  <div class="flex items-center space-x-2">
+                    <span id="stroke-guide-grid" class="bg-amber-200 text-amber-900 font-extrabold text-xs px-2.5 py-0.5 rounded-full">占中格</span>
+                    <span id="stroke-guide-count" class="bg-orange-200 text-orange-950 font-extrabold text-xs px-2.5 py-0.5 rounded-full">共 2 笔</span>
+                  </div>
+                  <p id="stroke-guide-order" class="text-xs sm:text-sm font-black text-amber-950 mt-1">笔顺：第一笔左半圆，第二笔竖右弯</p>
+                </div>
+              </div>
+              <button id="btn-speak-stroke-guide" class="flex items-center space-x-1.5 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-extrabold text-xs px-4 py-2 rounded-full shadow transition cursor-pointer">
+                <span>🔊</span>
+                <span>听书写要领</span>
+              </button>
+            </div>
+            <p id="stroke-guide-tips" class="text-xs text-amber-800 font-medium mt-2.5 border-t border-amber-200/80 pt-2 leading-relaxed">
+              💡 <strong>书写口诀：</strong>左半圆要圆润饱满占满中格，竖右弯紧贴第二、三线，不越界。
+            </p>
           </div>
 
           <!-- 画布容器 (iPad 高清优化) -->
@@ -542,7 +702,7 @@ class PinyinApp {
           </div>
 
           <!-- 画笔工具条 -->
-          <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
             <div class="flex items-center space-x-2">
               <span class="text-xs font-bold text-neutral-600">彩色画笔:</span>
               ${['#2563EB', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6'].map(col => `
@@ -551,13 +711,13 @@ class PinyinApp {
             </div>
 
             <div class="flex items-center space-x-3">
-              <button id="btn-canvas-demo" class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow transition">
+              <button id="btn-canvas-demo" class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow transition active:scale-95">
                 ▶ 笔顺示范
               </button>
-              <button id="btn-canvas-clear" class="bg-neutral-200 hover:bg-neutral-300 text-neutral-800 text-xs font-bold px-4 py-2 rounded-xl transition">
+              <button id="btn-canvas-clear" class="bg-neutral-200 hover:bg-neutral-300 text-neutral-800 text-xs font-bold px-4 py-2 rounded-xl transition active:scale-95">
                 🧹 清除重写
               </button>
-              <button id="btn-canvas-praise" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow transition">
+              <button id="btn-canvas-praise" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow transition active:scale-95">
                 👍 写好了，点赞！
               </button>
             </div>
@@ -565,21 +725,42 @@ class PinyinApp {
         </div>
       `;
 
-      // 初始化 Canvas
+      // 初始化 Canvas 与书写规范卡片
       setTimeout(() => {
         this.strokeCanvas = new PinyinStrokeCanvas('lesson-stroke-canvas');
-        this.strokeCanvas.setLetter(lesson.targetLetters[0] || 'a');
+        const initialLetter = lesson.targetLetters[0] || 'a';
+        this.strokeCanvas.setLetter(initialLetter);
+
+        const updateGuideCard = (letter) => {
+          const info = this.strokeCanvas ? this.strokeCanvas.getStrokeInfo(letter) : null;
+          if (!info) return;
+          const charEl = document.getElementById('stroke-guide-char');
+          const gridEl = document.getElementById('stroke-guide-grid');
+          const countEl = document.getElementById('stroke-guide-count');
+          const orderEl = document.getElementById('stroke-guide-order');
+          const tipsEl = document.getElementById('stroke-guide-tips');
+
+          if (charEl) charEl.textContent = info.displayChar || letter;
+          if (gridEl) gridEl.textContent = info.grid || '占中格';
+          if (countEl) countEl.textContent = `共 ${info.count || (info.strokes && info.strokes.length) || 1} 笔`;
+          if (orderEl) orderEl.textContent = `笔顺：${info.strokeOrder}`;
+          if (tipsEl) tipsEl.innerHTML = `💡 <strong>书写口诀：</strong>${info.tips}`;
+        };
+
+        updateGuideCard(initialLetter);
 
         // 切换字母
         stage.querySelectorAll('.lesson-write-letter-btn').forEach(btn => {
           btn.addEventListener('click', (e) => {
             const letter = e.currentTarget.dataset.letter;
             this.strokeCanvas.setLetter(letter);
+            updateGuideCard(letter);
+
             stage.querySelectorAll('.lesson-write-letter-btn').forEach(b => {
-              b.classList.remove('bg-amber-500', 'text-white', 'shadow');
+              b.classList.remove('bg-amber-500', 'text-white', 'shadow-md', 'scale-105');
               b.classList.add('bg-neutral-100', 'text-neutral-700');
             });
-            e.currentTarget.classList.add('bg-amber-500', 'text-white', 'shadow');
+            e.currentTarget.classList.add('bg-amber-500', 'text-white', 'shadow-md', 'scale-105');
             e.currentTarget.classList.remove('bg-neutral-100', 'text-neutral-700');
           });
         });
@@ -592,18 +773,45 @@ class PinyinApp {
         });
 
         // 示范与清除
-        document.getElementById('btn-canvas-demo')?.addEventListener('click', () => {
-          this.strokeCanvas.demonstrate();
+        const demoBtn = document.getElementById('btn-canvas-demo');
+        demoBtn?.addEventListener('click', () => {
+          if (demoBtn) {
+            demoBtn.disabled = true;
+            demoBtn.classList.add('ring-4', 'ring-emerald-300');
+          }
+          this.strokeCanvas.demonstrate((step, name) => {
+            if (demoBtn) demoBtn.textContent = `正在写第 ${step} 笔：${name}...`;
+          }, () => {
+            if (demoBtn) {
+              demoBtn.disabled = false;
+              demoBtn.textContent = '▶ 笔顺示范';
+              demoBtn.classList.remove('ring-4', 'ring-emerald-300');
+            }
+          });
         });
+
         document.getElementById('btn-canvas-clear')?.addEventListener('click', () => {
           this.strokeCanvas.clear();
         });
+
         document.getElementById('btn-canvas-praise')?.addEventListener('click', () => {
           if (window.audioEngine) {
             window.audioEngine.playSuccess();
-            window.audioEngine.speak('写得真规范，笔画工整，太有进步了！');
           }
           this.state.addStars(1);
+        });
+
+        // 听书写要领朗读
+        document.getElementById('btn-speak-stroke-guide')?.addEventListener('click', () => {
+          const letter = this.strokeCanvas ? this.strokeCanvas.currentLetter : initialLetter;
+          const info = this.strokeCanvas ? this.strokeCanvas.getStrokeInfo(letter) : null;
+          if (!info) return;
+          const charSpoken = (window.audioEngine && window.audioEngine.rhymePhoneticMap && window.audioEngine.rhymePhoneticMap[letter]) ? window.audioEngine.rhymePhoneticMap[letter] : (info.displayChar || letter);
+          const textToSpeak = `拼音字母 ${charSpoken}：${info.grid}。${info.strokeOrder}。${info.tips}`;
+          if (window.audioEngine) {
+            const spoken = window.audioEngine.convertPinyinForRhyme(textToSpeak);
+            window.audioEngine.speakTTS(spoken, null, 1.05);
+          }
         });
       }, 50);
 
@@ -636,11 +844,6 @@ class PinyinApp {
       if (window.audioEngine) {
         window.audioEngine.stopAllAudio();
         window.audioEngine.playFanfare();
-        setTimeout(() => {
-          if (window.audioEngine) {
-            window.audioEngine.speak(`恭喜你通关${lesson.title}，获得3颗金星！`);
-          }
-        }, 350);
       }
 
       stage.innerHTML = `
@@ -731,6 +934,10 @@ class PinyinApp {
             window.audioEngine.stopAllAudio();
             window.audioEngine.playSuccess();
           }
+          if (window.celebrationFX) {
+            window.celebrationFX.registerCorrect(btn);
+          }
+          this.state.addStars(1);
           btn.classList.add('bg-emerald-500', 'text-white', 'border-emerald-600');
           setTimeout(() => {
             this.currentQuizIndex += 1;
@@ -744,6 +951,9 @@ class PinyinApp {
           if (window.audioEngine) {
             window.audioEngine.stopAllAudio();
             window.audioEngine.playGentleOops();
+          }
+          if (window.celebrationFX) {
+            window.celebrationFX.registerMistake();
           }
           btn.classList.add('bg-rose-100', 'border-rose-400', 'animate-shake');
           setTimeout(() => {
@@ -788,6 +998,9 @@ class PinyinApp {
           <button class="game-select-tab px-5 py-2.5 rounded-2xl font-extrabold text-sm transition bg-white text-neutral-700 hover:bg-amber-100" data-game="diff">
             🧐 火眼金睛 (b/d易混对决)
           </button>
+          <button class="game-select-tab px-5 py-2.5 rounded-2xl font-extrabold text-sm transition bg-white text-neutral-700 hover:bg-amber-100" data-game="whack">
+            🐹 拼音打地鼠 (手速眼力)
+          </button>
         </div>
 
         <!-- 游戏运行容器 -->
@@ -826,6 +1039,9 @@ class PinyinApp {
     } else if (gameName === 'diff') {
       this.diffGame = new ConfusionDiffGame('active-game-stage');
       this.diffGame.render();
+    } else if (gameName === 'whack' && typeof WhackPinyinGame !== 'undefined') {
+      this.whackGame = new WhackPinyinGame('active-game-stage');
+      this.whackGame.render();
     }
   }
 
@@ -937,16 +1153,81 @@ class PinyinApp {
       }
     });
 
-    // 快捷指令联动测试与名称保存
-    document.getElementById('btn-test-shortcut')?.addEventListener('click', () => {
-      const name = document.getElementById('parent-shortcut-name')?.value || '拼音奖励15分钟';
+    // 直接打开 iPad 快捷指令 App
+    document.getElementById('btn-open-shortcuts-app')?.addEventListener('click', () => {
       if (window.screenTimeLock) {
-        window.screenTimeLock.state.shortcutName = name;
-        window.screenTimeLock.saveState();
-        window.screenTimeLock.triggerShortcut(name);
-        alert(`已向 iPad 触发快捷指令：【${name}】\n如果系统弹出确认窗口，请点击“允许运行”即可完成联动！`);
+        window.screenTimeLock.openShortcutsApp();
       }
     });
+
+    // 复制快捷指令名称辅助按钮
+    document.getElementById('btn-copy-shortcut-unlock-name')?.addEventListener('click', () => {
+      const val = document.getElementById('parent-shortcut-name')?.value || '拼音奖励15分钟';
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(val);
+      }
+      const feedbackEl = document.getElementById('shortcut-test-feedback');
+      if (feedbackEl) {
+        feedbackEl.className = 'p-3 rounded-xl border text-xs font-medium space-y-1.5 transition bg-emerald-50 border-emerald-200 text-emerald-900';
+        feedbackEl.innerHTML = `<div>📋 已复制解锁指令名称：<strong>${val}</strong>（请在 iPad 快捷指令 App 中以此命名）</div>`;
+      }
+    });
+
+    document.getElementById('btn-copy-shortcut-lock-name')?.addEventListener('click', () => {
+      const val = document.getElementById('parent-shortcut-lock-name')?.value || '拼音奖励15分钟恢复锁定';
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(val);
+      }
+      const feedbackEl = document.getElementById('shortcut-test-feedback');
+      if (feedbackEl) {
+        feedbackEl.className = 'p-3 rounded-xl border text-xs font-medium space-y-1.5 transition bg-emerald-50 border-emerald-200 text-emerald-900';
+        feedbackEl.innerHTML = `<div>📋 已复制恢复锁定指令名称：<strong>${val}</strong>（请在 iPad 快捷指令 App 中以此命名）</div>`;
+      }
+    });
+
+    // 快捷指令自动唤起联动开关
+    document.getElementById('parent-enable-shortcut-toggle')?.addEventListener('change', (e) => {
+      if (window.screenTimeLock) {
+        window.screenTimeLock.state.enableShortcutTrigger = e.target.checked;
+        window.screenTimeLock.saveState();
+      }
+    });
+
+    // 快捷指令联动测试（非阻塞系统级唤起）
+    const handleShortcutTest = (action) => {
+      if (!window.screenTimeLock) return;
+      const unlockInput = document.getElementById('parent-shortcut-name');
+      const lockInput = document.getElementById('parent-shortcut-lock-name');
+      const unlockName = unlockInput?.value?.trim() || '拼音奖励15分钟';
+      const lockName = lockInput?.value?.trim() || '拼音奖励15分钟恢复锁定';
+
+      window.screenTimeLock.state.shortcutName = unlockName;
+      window.screenTimeLock.state.shortcutLockName = lockName;
+      window.screenTimeLock.saveState();
+
+      const targetName = action === 'unlock' ? unlockName : lockName;
+      const result = window.screenTimeLock.triggerShortcut(targetName, action);
+
+      const feedbackEl = document.getElementById('shortcut-test-feedback');
+      if (feedbackEl && result) {
+        const isUnlock = action === 'unlock';
+        feedbackEl.className = `p-3 rounded-xl border text-xs font-medium space-y-1.5 transition ${isUnlock ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900'}`;
+        feedbackEl.innerHTML = `
+          <div class="font-extrabold flex items-center space-x-1.5">
+            <span>${isUnlock ? '🔓' : '🔒'}</span>
+            <span>已向 iPad 唤起【${result.targetName}】(${isUnlock ? '解除专注模式限制' : '恢复专注模式锁定'})</span>
+          </div>
+          <div class="text-[11px] leading-relaxed">
+            若系统弹出 <em>“在「快捷指令」中打开此页？”</em>，请点击 <strong>“打开”</strong> 即可自动执行！<br>
+            若未自动跳转，可直接点击这里手动唤起：<a href="${result.url}" class="underline font-black ${isUnlock ? 'text-emerald-700' : 'text-rose-700'}">运行指令【${result.targetName}】</a>
+          </div>
+        `;
+      }
+    };
+
+    document.getElementById('btn-test-shortcut-unlock')?.addEventListener('click', () => handleShortcutTest('unlock'));
+    document.getElementById('btn-test-shortcut-lock')?.addEventListener('click', () => handleShortcutTest('lock'));
+    document.getElementById('btn-test-shortcut')?.addEventListener('click', () => handleShortcutTest('unlock'));
 
     // 音量与语速设置联动
     document.getElementById('parent-boost-toggle')?.addEventListener('change', (e) => {
@@ -986,7 +1267,6 @@ class PinyinApp {
           targetEl.value = String(newVal);
           if (window.audioEngine) {
             window.audioEngine.playSuccess();
-            window.audioEngine.speak(`密码验证成功，正确率门槛已调整为百分之${newVal}！`);
           }
         },
         onCancel: () => {
@@ -1057,6 +1337,18 @@ class PinyinApp {
 
       const scInput = document.getElementById('parent-shortcut-name');
       if (scInput) scInput.value = window.screenTimeLock.state.shortcutName || '拼音奖励15分钟';
+
+      const scLockInput = document.getElementById('parent-shortcut-lock-name');
+      if (scLockInput) scLockInput.value = window.screenTimeLock.state.shortcutLockName || '拼音奖励15分钟恢复锁定';
+
+      const scToggle = document.getElementById('parent-enable-shortcut-toggle');
+      if (scToggle) scToggle.checked = window.screenTimeLock.state.enableShortcutTrigger !== false;
+
+      const feedbackEl = document.getElementById('shortcut-test-feedback');
+      if (feedbackEl) {
+        feedbackEl.className = 'hidden p-3 rounded-xl border text-xs font-medium space-y-1.5 transition';
+        feedbackEl.innerHTML = '';
+      }
 
       const curAcc = String(window.screenTimeLock.getTargetAccuracy());
       const statSelect = document.getElementById('parent-stat-accuracy-select');
