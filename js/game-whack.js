@@ -9,8 +9,8 @@ class WhackPinyinGame {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
     this.score = 0;
-    this.currentRound = 0;
-    this.totalRounds = 5;
+    this.correctCount = 0;
+    this.targetCorrect = 5;
     this.targetPinyin = 'b';
     this.holes = [];
     this.moleTimers = [];
@@ -46,7 +46,7 @@ class WhackPinyinGame {
   render() {
     if (!this.container) return;
     this.score = 0;
-    this.currentRound = 0;
+    this.correctCount = 0;
 
     this.container.innerHTML = `
       <div class="w-full bg-gradient-to-b from-emerald-100 via-amber-50 to-orange-100 rounded-3xl p-5 shadow-xl border-4 border-emerald-300 select-none">
@@ -65,7 +65,7 @@ class WhackPinyinGame {
               得分: <span id="whack-score-val" class="text-amber-600 text-sm font-black">0</span>
             </div>
             <div class="bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-300 text-xs font-black text-emerald-900">
-              关卡: <span id="whack-round-val" class="text-emerald-700 text-sm font-black">1/5</span>
+              已答对: <span id="whack-round-val" class="text-emerald-700 text-sm font-black">0/5</span>
             </div>
           </div>
         </div>
@@ -150,17 +150,16 @@ class WhackPinyinGame {
   }
 
   startNewQuestion() {
-    if (this.currentRound >= this.totalRounds) {
+    if (this.correctCount >= this.targetCorrect) {
       this.showVictory();
       return;
     }
 
-    this.currentRound++;
     this.clearAllMoles();
 
     // 更新关卡文字
     const roundEl = this.container.querySelector('#whack-round-val');
-    if (roundEl) roundEl.innerText = `${this.currentRound}/${this.totalRounds}`;
+    if (roundEl) roundEl.innerText = `${this.correctCount}/${this.targetCorrect}`;
 
     // 随机抽选一道题目
     this.currentQ = this.questionBank[Math.floor(Math.random() * this.questionBank.length)];
@@ -252,8 +251,11 @@ class WhackPinyinGame {
       // 答对啦！
       this.roundActive = false;
       this.score += 10;
+      this.correctCount++;
       const scoreEl = this.container.querySelector('#whack-score-val');
       if (scoreEl) scoreEl.innerText = this.score;
+      const roundEl = this.container.querySelector('#whack-round-val');
+      if (roundEl) roundEl.innerText = `${this.correctCount}/${this.targetCorrect}`;
 
       // 卡通木槌打击音效
       this.playHammerSound();
@@ -270,21 +272,28 @@ class WhackPinyinGame {
         window.celebrationFX.registerCorrect(holeEl);
       }
 
-      // 增加星币奖励
-      if (window.app && window.app.state) {
-        window.app.state.addStars(1);
-      }
-
       // 统计答题正确率
       if (window.screenTimeLock) {
         window.screenTimeLock.recordAnswer(true);
       }
 
-      // 下一题
-      setTimeout(() => {
-        moleEl.classList.remove('animate-shake');
-        this.startNewQuestion();
-      }, 1100);
+      if (this.correctCount >= this.targetCorrect) {
+        if (window.app && window.app.state) {
+          window.app.state.addStars(5);
+        }
+        setTimeout(() => {
+          moleEl.classList.remove('animate-shake');
+          this.showVictory();
+        }, 800);
+      } else {
+        if (window.app && window.app.state) {
+          window.app.state.addStars(1);
+        }
+        setTimeout(() => {
+          moleEl.classList.remove('animate-shake');
+          this.startNewQuestion();
+        }, 1100);
+      }
 
     } else {
       // 敲错了
@@ -320,20 +329,25 @@ class WhackPinyinGame {
 
   showVictory() {
     this.clearAllMoles();
+    this.roundActive = false;
+    if (window.audioEngine) {
+      window.audioEngine.stopAllAudio();
+      window.audioEngine.playFanfare();
+    }
     if (window.celebrationFX) {
       window.celebrationFX.launchConfetti(3500);
     }
     if (window.mascotPipi) {
-      window.mascotPipi.speak('🎉 太棒啦！打地鼠大获全胜，全满分！', true);
+      window.mascotPipi.speak('🎉 太棒啦！地鼠大作战答对 5 次挑战成功！获得 5 颗星币！', true);
     }
 
     const grid = this.container.querySelector('#whack-grid');
     if (grid) {
       grid.innerHTML = `
         <div class="col-span-3 bg-white/95 backdrop-blur-md p-6 rounded-3xl shadow-xl border-4 border-amber-400 text-center space-y-3 animate-fadeIn my-4">
-          <div class="text-6xl animate-bounce">🏆</div>
-          <h4 class="text-2xl font-black text-amber-900">恭喜通关！小地鼠全被打跑啦！</h4>
-          <p class="text-sm font-bold text-emerald-600">最终得分：${this.score} 分 · 荣获【快手拼音小英雄】勋章！</p>
+          <div class="text-6xl animate-bounce">🏆 🐹 ⭐</div>
+          <h4 class="text-2xl font-black text-amber-900">恭喜通关！答对 5 次挑战成功！</h4>
+          <p class="text-sm font-bold text-emerald-600">最终得分：${this.score} 分 · 已获得 5 颗闪亮星币 ⭐ · 荣获【快手拼音小英雄】勋章！</p>
           <div class="pt-2 flex justify-center space-x-3">
             <button id="btn-whack-restart" class="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 active:scale-95 text-white font-extrabold text-base py-3 px-6 rounded-2xl shadow-lg border border-emerald-300 transition cursor-pointer">
               <span>🔄 再玩一次！</span>
@@ -395,4 +409,6 @@ class WhackPinyinGame {
   }
 }
 
-window.WhackPinyinGame = WhackPinyinGame;
+if (typeof window !== 'undefined') {
+  window.WhackPinyinGame = WhackPinyinGame;
+}

@@ -15,6 +15,7 @@ class TrainBlenderGame {
     this.isAnimating = false;
     this.animWatchdog = null;
     this.stepTimer = null;
+    this.successCount = 0;
 
     // 普通话合法声韵配合表（现代汉语权威音系规范与统编小学语文拼音教学要求）
     this.legalCombos = {
@@ -156,6 +157,7 @@ class TrainBlenderGame {
             </div>
           </div>
           <div class="flex items-center space-x-2">
+            <span class="bg-emerald-100 text-emerald-800 text-xs px-3 py-1.5 rounded-full font-bold">已连读: <span id="train-success-count">${this.successCount}</span>/5 组</span>
             <span class="bg-amber-100 text-amber-800 text-xs px-3 py-1.5 rounded-full font-bold">课本同步生字 · 严谨普通话拼读</span>
           </div>
         </div>
@@ -645,8 +647,27 @@ class TrainBlenderGame {
           }
           if (tip) tip.innerText = `猛一碰！合读：【${syllable}】！`;
 
-          if (window.mascotPipi) {
-            window.mascotPipi.playGiggleChime();
+          this.successCount = (this.successCount || 0) + 1;
+          const countEl = this.container ? this.container.querySelector('#train-success-count') : null;
+          if (countEl) countEl.innerText = this.successCount;
+
+          if (this.successCount % 5 === 0) {
+            if (window.app && window.app.state) {
+              window.app.state.addStars(5);
+            }
+            if (window.celebrationFX) {
+              window.celebrationFX.launchConfetti(3500);
+            }
+            if (window.audioEngine) {
+              window.audioEngine.playFanfare();
+            }
+            if (window.mascotPipi) {
+              window.mascotPipi.speak('🎉 太棒啦！拼读小火车成功连读 5 组拼音！奖励 5 颗星币！', true);
+            }
+          } else {
+            if (window.mascotPipi) {
+              window.mascotPipi.playGiggleChime();
+            }
           }
 
           if (resultBox) {

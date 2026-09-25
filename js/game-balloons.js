@@ -7,6 +7,8 @@ class BalloonGame {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
     this.score = 0;
+    this.correctCount = 0;
+    this.targetCorrect = 5;
     this.target = null;
     this.balloons = [];
     this.timer = null;
@@ -18,6 +20,7 @@ class BalloonGame {
     if (!this.container) return;
     this.isPlaying = true;
     this.score = 0;
+    this.correctCount = 0;
     this.lettersPool = lessonLetters && lessonLetters.length > 0 ? lessonLetters : ['a', 'o', 'e', 'b', 'p', 'm', 'f'];
     this.renderLayout();
     this.nextRound();
@@ -36,7 +39,8 @@ class BalloonGame {
         <div class="absolute top-3 left-4 right-4 flex items-center justify-between z-20 bg-white/85 backdrop-blur-md px-5 py-2.5 rounded-full shadow-sm">
           <div class="flex items-center space-x-2">
             <span class="text-xl">🎈</span>
-            <span class="font-bold text-sky-800 text-lg">得分: <span id="balloon-score" class="text-amber-500 font-extrabold text-2xl">0</span></span>
+            <span class="font-bold text-sky-800 text-sm sm:text-base">已答对: <span id="balloon-correct-count" class="text-amber-500 font-extrabold text-xl sm:text-2xl">${this.correctCount}</span>/5</span>
+            <span class="text-xs text-sky-600 font-bold ml-1 sm:ml-2">(得分: <span id="balloon-score">${this.score}</span>)</span>
           </div>
 
           <div class="flex items-center space-x-3">
@@ -156,8 +160,11 @@ class BalloonGame {
       }
 
       this.score += 10;
+      this.correctCount += 1;
       const scoreEl = document.getElementById('balloon-score');
       if (scoreEl) scoreEl.innerText = this.score;
+      const correctEl = document.getElementById('balloon-correct-count');
+      if (correctEl) correctEl.innerText = this.correctCount;
 
       if (window.screenTimeLock) {
         window.screenTimeLock.recordAnswer(true);
@@ -170,9 +177,16 @@ class BalloonGame {
         </div>
       `;
 
-      setTimeout(() => {
-        this.nextRound();
-      }, 900);
+      if (this.correctCount >= this.targetCorrect) {
+        // 答对5次，通关完成！
+        setTimeout(() => {
+          this.showVictory();
+        }, 700);
+      } else {
+        setTimeout(() => {
+          this.nextRound();
+        }, 900);
+      }
     } else {
       // 戳错啦，温和抖动并以真人母带读出戳错的音，再回放正确音
       if (window.screenTimeLock) {
@@ -200,6 +214,45 @@ class BalloonGame {
         window.appState.recordMistake(this.target, `听辨混淆为 ${letter}`);
       }
     }
+  }
+
+  showVictory() {
+    this.isPlaying = false;
+    this.tapLocked = true;
+    if (window.audioEngine) {
+      window.audioEngine.stopAllAudio();
+      window.audioEngine.playFanfare();
+    }
+    if (window.celebrationFX) {
+      window.celebrationFX.launchConfetti(3500);
+    }
+    if (window.app && window.app.state) {
+      window.app.state.addStars(5);
+    }
+    if (window.mascotPipi) {
+      window.mascotPipi.speak('🎉 太棒啦！气球派对答对 5 次大获全胜！获得 5 颗星币！', true);
+    }
+
+    const sky = document.getElementById('balloon-sky');
+    if (!sky) return;
+    sky.innerHTML = `
+      <div class="absolute inset-0 flex items-center justify-center p-4 z-30">
+        <div class="bg-white/95 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl border-4 border-amber-400 text-center space-y-4 max-w-md animate-fadeIn">
+          <div class="text-6xl animate-bounce">🏆 🎈 ⭐</div>
+          <h4 class="text-2xl sm:text-3xl font-black text-amber-950">太棒啦！答对 5 次挑战成功！</h4>
+          <p class="text-sm font-extrabold text-emerald-600">已获得 5 颗闪亮星币 ⭐ · 听音辨字母全通关！</p>
+          <div class="pt-2 flex justify-center space-x-3">
+            <button id="btn-balloon-restart" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 active:scale-95 text-white font-extrabold text-base py-3 px-7 rounded-2xl shadow-lg border border-amber-300 transition cursor-pointer">
+              🔄 再玩一次
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('btn-balloon-restart')?.addEventListener('click', () => {
+      this.start(this.lettersPool);
+    });
   }
 }
 

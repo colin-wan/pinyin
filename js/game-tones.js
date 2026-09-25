@@ -9,6 +9,8 @@ class ToneRollercoasterGame {
     this.currentLetter = 'a';
     this.targetToneIndex = 1; // 0: 1声, 1: 2声, 2: 3声, 3: 4声
     this.score = 0;
+    this.correctCount = 0;
+    this.targetCorrect = 5;
     this.isPlaying = false;
 
     this.tonesMap = {
@@ -43,7 +45,8 @@ class ToneRollercoasterGame {
             </div>
           </div>
           <div class="flex items-center space-x-2">
-            <span class="text-sm font-bold text-indigo-900">得分: <span id="tone-game-score" class="text-amber-500 font-extrabold text-xl">0</span></span>
+            <span class="text-sm font-bold text-indigo-900">已答对: <span id="tone-correct-count" class="text-amber-500 font-extrabold text-xl">${this.correctCount}</span>/5</span>
+            <span class="text-xs text-indigo-600 font-bold ml-1">(得分: <span id="tone-game-score">${this.score}</span>)</span>
           </div>
         </div>
 
@@ -261,17 +264,27 @@ class ToneRollercoasterGame {
           window.audioEngine.playSuccess();
         }
         this.score += 10;
+        this.correctCount += 1;
         const s = document.getElementById('tone-game-score');
         if (s) s.innerText = this.score;
+        const c = document.getElementById('tone-correct-count');
+        if (c) c.innerText = this.correctCount;
 
         if (window.screenTimeLock) {
           window.screenTimeLock.recordAnswer(true);
         }
 
-        setTimeout(() => {
-          this.isSelecting = false;
-          this.randomTarget();
-        }, 1100);
+        if (this.correctCount >= this.targetCorrect) {
+          setTimeout(() => {
+            this.isSelecting = false;
+            this.showVictory();
+          }, 800);
+        } else {
+          setTimeout(() => {
+            this.isSelecting = false;
+            this.randomTarget();
+          }, 1100);
+        }
       } else {
         if (window.screenTimeLock) {
           window.screenTimeLock.recordAnswer(false);
@@ -293,6 +306,48 @@ class ToneRollercoasterGame {
           this.driveCar(this.targetToneIndex);
         }, 900);
       }
+    });
+  }
+
+  showVictory() {
+    this.isPlaying = false;
+    if (window.audioEngine) {
+      window.audioEngine.stopAllAudio();
+      window.audioEngine.playFanfare();
+    }
+    if (window.celebrationFX) {
+      window.celebrationFX.launchConfetti(3500);
+    }
+    if (window.app && window.app.state) {
+      window.app.state.addStars(5);
+    }
+    if (window.mascotPipi) {
+      window.mascotPipi.speak('🎉 太棒啦！声调过山车答对 5 次挑战成功！四声掌握得又快又准！', true);
+    }
+
+    if (!this.container) return;
+    this.container.innerHTML = `
+      <div class="w-full bg-gradient-to-b from-indigo-50 to-blue-100 rounded-3xl p-6 sm:p-8 shadow-lg border-4 border-indigo-300 text-center select-none animate-fadeIn my-2">
+        <div class="max-w-md mx-auto space-y-4">
+          <div class="text-6xl animate-bounce">🏆 🎢 ⭐</div>
+          <h4 class="text-2xl sm:text-3xl font-black text-indigo-950">太棒啦！答对 5 次挑战成功！</h4>
+          <p class="text-sm font-extrabold text-emerald-600">已获得 5 颗闪亮星币 ⭐ · 声调过山车大满贯！</p>
+          <div class="bg-white/80 p-3.5 rounded-2xl border border-indigo-200 text-xs font-bold text-indigo-900 leading-relaxed">
+            口诀记心中：一声平，二声扬，三声拐弯，四声降！
+          </div>
+          <div class="pt-2 flex justify-center space-x-3">
+            <button id="btn-tone-restart" class="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 active:scale-95 text-white font-extrabold text-base py-3 px-7 rounded-2xl shadow-lg border border-indigo-300 transition cursor-pointer">
+              🔄 再玩一次
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('btn-tone-restart')?.addEventListener('click', () => {
+      this.score = 0;
+      this.correctCount = 0;
+      this.render();
     });
   }
 }

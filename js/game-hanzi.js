@@ -13,6 +13,8 @@ class HanziPinyinGameHub {
     this.currentUnit = 'all'; // all or unit name
     this.score = 0;
     this.streak = 0;
+    this.correctCount = 0;
+    this.targetCorrect = 5;
     this.currentQuestion = null;
     this.cards = [];
     this.selectedCard = null;
@@ -54,10 +56,14 @@ class HanziPinyinGameHub {
           </div>
 
           <!-- 得分与连对奖励 -->
-          <div class="flex items-center space-x-3">
-            <div class="bg-amber-100/90 px-3.5 py-1.5 rounded-full border border-amber-300 text-amber-950 font-black text-sm flex items-center space-x-1">
+          <div class="flex items-center space-x-2 sm:space-x-3">
+            <div class="bg-emerald-100/90 px-3.5 py-1.5 rounded-full border border-emerald-300 text-emerald-950 font-black text-xs sm:text-sm flex items-center space-x-1">
+              <span>🎯 已答对:</span>
+              <span id="hanzi-game-correct" class="text-emerald-700 text-base font-black">${this.correctCount}/${this.targetCorrect}</span>
+            </div>
+            <div class="bg-amber-100/90 px-3.5 py-1.5 rounded-full border border-amber-300 text-amber-950 font-black text-xs sm:text-sm flex items-center space-x-1">
               <span>⭐ 得分:</span>
-              <span id="hanzi-game-score" class="text-amber-600 text-lg font-black">${this.score}</span>
+              <span id="hanzi-game-score" class="text-amber-600 text-base font-black">${this.score}</span>
             </div>
             <div class="bg-orange-100/90 px-3.5 py-1.5 rounded-full border border-orange-300 text-orange-950 font-black text-xs flex items-center space-x-1">
               <span>🔥 连对:</span>
@@ -104,6 +110,7 @@ class HanziPinyinGameHub {
     this.container.querySelectorAll('.hanzi-mode-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         this.mode = e.currentTarget.dataset.mode;
+        this.correctCount = 0;
         this.render();
       });
     });
@@ -258,6 +265,7 @@ class HanziPinyinGameHub {
       second.card.matched = true;
       this.score += 10;
       this.streak += 1;
+      this.correctCount += 1;
       this.updateScoreBar();
 
       // 通知屏幕时间与正确率引擎
@@ -267,10 +275,6 @@ class HanziPinyinGameHub {
 
       if (window.celebrationFX) {
         window.celebrationFX.registerCorrect(second.elem);
-      }
-
-      if (window.app && window.app.state) {
-        window.app.state.addStars(1);
       }
 
       if (window.audioEngine) {
@@ -284,14 +288,28 @@ class HanziPinyinGameHub {
       this.selectedCard = null;
       this.canClick = true;
 
-      // 检查是否全部通关消除
+      // 检查是否答对5次或全部通关消除
       const allDone = this.cards.every(c => c.matched);
-      if (allDone) {
+      if (allDone || this.correctCount >= this.targetCorrect) {
+        if (window.app && window.app.state) {
+          window.app.state.addStars(5);
+        }
+        if (window.celebrationFX) {
+          window.celebrationFX.launchConfetti(3500);
+        }
+        if (window.mascotPipi) {
+          window.mascotPipi.speak('🎉 太棒啦！拼音消消乐答对 5 次挑战成功！获得 5 颗星币！', true);
+        }
         setTimeout(() => {
-          this.showCelebrationModal(stage, '恭喜你！全部汉字与拼音配对消除成功！', () => {
+          this.showCelebrationModal(stage, '太棒啦！拼音消消乐答对 5 次挑战成功！', () => {
+            this.correctCount = 0;
             this.initMatchGame(stage);
           });
         }, 500);
+      } else {
+        if (window.app && window.app.state) {
+          window.app.state.addStars(1);
+        }
       }
     } else {
       // 配对失败
@@ -405,6 +423,7 @@ class HanziPinyinGameHub {
           e.currentTarget.classList.add('bg-emerald-500', 'text-white', 'border-emerald-600');
           this.score += 10;
           this.streak += 1;
+          this.correctCount += 1;
           this.updateScoreBar();
 
           if (window.screenTimeLock) {
@@ -415,18 +434,37 @@ class HanziPinyinGameHub {
             window.celebrationFX.registerCorrect(e.currentTarget);
           }
 
-          if (window.app && window.app.state) {
-            window.app.state.addStars(1);
+          if (this.correctCount >= this.targetCorrect) {
+            if (window.app && window.app.state) {
+              window.app.state.addStars(5);
+            }
+            if (window.celebrationFX) {
+              window.celebrationFX.launchConfetti(3500);
+            }
+            if (window.audioEngine) {
+              window.audioEngine.playFanfare();
+            }
+            if (window.mascotPipi) {
+              window.mascotPipi.speak('🎉 太棒啦！看汉字选拼音答对 5 次挑战成功！获得 5 颗星币！', true);
+            }
+            setTimeout(() => {
+              this.showCelebrationModal(stage, '太棒啦！看汉字选拼音答对 5 次挑战成功！', () => {
+                this.correctCount = 0;
+                this.initQuizGame(stage);
+              });
+            }, 600);
+          } else {
+            if (window.app && window.app.state) {
+              window.app.state.addStars(1);
+            }
+            if (window.audioEngine) {
+              // 纯粹播放轻快悦耳的答对音效，不进行机械冗余朗读
+              window.audioEngine.playSuccess();
+            }
+            setTimeout(() => {
+              this.initQuizGame(stage);
+            }, 850);
           }
-
-          if (window.audioEngine) {
-            // 纯粹播放轻快悦耳的答对音效，不进行机械冗余朗读
-            window.audioEngine.playSuccess();
-          }
-
-          setTimeout(() => {
-            this.initQuizGame(stage);
-          }, 850);
         } else {
           e.currentTarget.classList.add('bg-rose-100', 'border-rose-400', 'animate-shake');
           this.streak = 0;
@@ -527,6 +565,7 @@ class HanziPinyinGameHub {
           isAnswering = true;
           this.score += 10;
           this.streak += 1;
+          this.correctCount += 1;
           this.updateScoreBar();
 
           if (window.screenTimeLock) {
@@ -537,20 +576,38 @@ class HanziPinyinGameHub {
             window.celebrationFX.registerCorrect(e.currentTarget);
           }
 
-          if (window.app && window.app.state) {
-            window.app.state.addStars(1);
+          if (this.correctCount >= this.targetCorrect) {
+            if (window.app && window.app.state) {
+              window.app.state.addStars(5);
+            }
+            if (window.celebrationFX) {
+              window.celebrationFX.launchConfetti(3500);
+            }
+            if (window.audioEngine) {
+              window.audioEngine.playFanfare();
+            }
+            if (window.mascotPipi) {
+              window.mascotPipi.speak('🎉 太棒啦！听音摘苹果答对 5 次挑战成功！获得 5 颗星币！', true);
+            }
+            setTimeout(() => {
+              this.showCelebrationModal(stage, '太棒啦！听拼音摘苹果答对 5 次挑战成功！', () => {
+                this.correctCount = 0;
+                this.initListenGame(stage);
+              });
+            }, 600);
+          } else {
+            if (window.app && window.app.state) {
+              window.app.state.addStars(1);
+            }
+            if (window.audioEngine) {
+              // 纯粹清脆悦耳的通关音效，不进行机械念诵
+              window.audioEngine.playSuccess();
+            }
+            e.currentTarget.classList.add('scale-125', 'opacity-0', 'transition-all', 'duration-500');
+            setTimeout(() => {
+              this.initListenGame(stage);
+            }, 850);
           }
-
-          if (window.audioEngine) {
-            // 纯粹清脆悦耳的通关音效，不进行机械念诵
-            window.audioEngine.playSuccess();
-          }
-
-          e.currentTarget.classList.add('scale-125', 'opacity-0', 'transition-all', 'duration-500');
-
-          setTimeout(() => {
-            this.initListenGame(stage);
-          }, 850);
         } else {
           this.streak = 0;
           this.updateScoreBar();
@@ -576,16 +633,19 @@ class HanziPinyinGameHub {
 
   showCelebrationModal(stage, title, onNext) {
     if (window.audioEngine) {
+      window.audioEngine.stopAllAudio();
       window.audioEngine.playFanfare();
     }
     stage.innerHTML = `
-      <div class="bg-gradient-to-b from-white to-amber-50 rounded-3xl p-8 shadow-2xl border-4 border-amber-400 text-center space-y-6 max-w-lg mx-auto animate-fadeIn">
+      <div class="bg-gradient-to-b from-white to-amber-50 rounded-3xl p-8 shadow-2xl border-4 border-amber-400 text-center space-y-5 max-w-lg mx-auto animate-fadeIn my-4">
         <div class="text-7xl animate-bounce">🎉 🍎 🀄</div>
         <h3 class="text-2xl sm:text-3xl font-black text-amber-950">${title}</h3>
-        <p class="text-sm text-neutral-600 font-bold">你用拼音掌握了更多人教版一年级生字，正确率与积分直线上升！</p>
-        <button id="btn-celebration-next" class="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-lg px-8 py-3.5 rounded-2xl shadow-lg transition active:scale-95">
-          继续下一轮闯关 ›
-        </button>
+        <p class="text-sm font-extrabold text-emerald-600">已获得 5 颗闪亮星币 ⭐ · 掌握更多人教版一年级生字！</p>
+        <div class="pt-2 flex justify-center">
+          <button id="btn-celebration-next" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 text-white font-black text-base sm:text-lg px-8 py-3.5 rounded-2xl shadow-lg transition active:scale-95 cursor-pointer">
+            🔄 再玩一次 / 下一轮闯关 ›
+          </button>
+        </div>
       </div>
     `;
 
@@ -600,6 +660,9 @@ class HanziPinyinGameHub {
 
     const streakEl = document.getElementById('hanzi-game-streak');
     if (streakEl) streakEl.innerText = this.streak;
+
+    const correctEl = document.getElementById('hanzi-game-correct');
+    if (correctEl) correctEl.innerText = `${this.correctCount}/${this.targetCorrect}`;
   }
 }
 

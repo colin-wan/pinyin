@@ -9,6 +9,8 @@ class ConfusionDiffGame {
     this.container = document.getElementById(containerId);
     this.pairIndex = 0;
     this.score = 0;
+    this.correctCount = 0;
+    this.targetCorrect = 5;
     this.targetItem = null;
 
     this.pairs = (window.PINYIN_DATA && window.PINYIN_DATA.confusionPairs) || [
@@ -65,6 +67,10 @@ class ConfusionDiffGame {
               <h3 class="font-extrabold text-purple-950 text-lg">火眼金睛·易混字母大对决</h3>
               <p class="text-xs text-purple-700 font-medium">看清口诀不迷路，彻底分清相似拼音！</p>
             </div>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <span class="text-sm font-bold text-purple-900 bg-purple-100 px-3 py-1 rounded-full">已答对: <span id="diff-correct-count" class="text-amber-500 font-extrabold text-lg">${this.correctCount}</span>/5</span>
           </div>
 
           <!-- 对决组切换 -->
@@ -156,14 +162,15 @@ class ConfusionDiffGame {
 
     if (chosenChar === this.targetItem.text) {
       // 答对啦！
+      this.correctCount += 1;
+      const countEl = document.getElementById('diff-correct-count');
+      if (countEl) countEl.innerText = this.correctCount;
+
       if (window.screenTimeLock) {
         window.screenTimeLock.recordAnswer(true);
       }
       if (window.celebrationFX) {
         window.celebrationFX.registerCorrect(btnEl);
-      }
-      if (window.app && window.app.state) {
-        window.app.state.addStars(1);
       }
       if (window.audioEngine) {
         window.audioEngine.stopAllAudio();
@@ -177,10 +184,23 @@ class ConfusionDiffGame {
       }
       btnEl.classList.add('border-emerald-500', 'bg-emerald-50');
 
-      setTimeout(() => {
-        btnEl.classList.remove('border-emerald-500', 'bg-emerald-50');
-        this.randomTarget();
-      }, 1100);
+      if (this.correctCount >= this.targetCorrect) {
+        if (window.app && window.app.state) {
+          window.app.state.addStars(5);
+        }
+        setTimeout(() => {
+          btnEl.classList.remove('border-emerald-500', 'bg-emerald-50');
+          this.showVictory();
+        }, 800);
+      } else {
+        if (window.app && window.app.state) {
+          window.app.state.addStars(1);
+        }
+        setTimeout(() => {
+          btnEl.classList.remove('border-emerald-500', 'bg-emerald-50');
+          this.randomTarget();
+        }, 1100);
+      }
     } else {
       // 答错啦，播放温和提示音，并播放所点字母的真人录音
       if (window.screenTimeLock) {
@@ -212,6 +232,44 @@ class ConfusionDiffGame {
         );
       }
     }
+  }
+
+  showVictory() {
+    this.choiceLocked = true;
+    if (window.audioEngine) {
+      window.audioEngine.stopAllAudio();
+      window.audioEngine.playFanfare();
+    }
+    if (window.celebrationFX) {
+      window.celebrationFX.launchConfetti(3500);
+    }
+    if (window.mascotPipi) {
+      window.mascotPipi.speak('🎉 太棒啦！火眼金睛答对 5 次挑战成功！再也没有难得倒你的相似拼音啦！', true);
+    }
+
+    if (!this.container) return;
+    this.container.innerHTML = `
+      <div class="w-full bg-gradient-to-b from-purple-50 to-pink-50 rounded-3xl p-6 sm:p-8 shadow-lg border-4 border-purple-300 text-center select-none animate-fadeIn my-2">
+        <div class="max-w-md mx-auto space-y-4">
+          <div class="text-6xl animate-bounce">🏆 🧐 ⭐</div>
+          <h4 class="text-2xl sm:text-3xl font-black text-purple-950">太棒啦！答对 5 次挑战成功！</h4>
+          <p class="text-sm font-extrabold text-emerald-600">已获得 5 颗闪亮星币 ⭐ · 易混拼音辨析全通关！</p>
+          <div class="bg-white/80 p-3.5 rounded-2xl border border-purple-200 text-xs font-bold text-purple-900 leading-relaxed">
+            ${this.pairs[this.pairIndex].ruleSong}
+          </div>
+          <div class="pt-2 flex justify-center space-x-3">
+            <button id="btn-diff-restart" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 active:scale-95 text-white font-extrabold text-base py-3 px-7 rounded-2xl shadow-lg border border-purple-300 transition cursor-pointer">
+              🔄 再玩一次
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('btn-diff-restart')?.addEventListener('click', () => {
+      this.correctCount = 0;
+      this.render();
+    });
   }
 }
 
