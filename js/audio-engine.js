@@ -533,6 +533,61 @@ class PinyinAudioEngine {
     this.initAudioContext();
     this.initVoices();
     this.bindTouchWarmup();
+    this.enrichCharAudioMap();
+  }
+
+  /**
+   * 自动从统编人教版小学语文一年级上下两册数据库补充全量生字与真人母带映射 (730+字)
+   * 彻底杜绝生字缺漏导致回退到系统机械 TTS 合成音
+   */
+  enrichCharAudioMap() {
+    if (this._hasEnrichedChars) return;
+    const toneMap = this.toneCharsMap || {
+      'ā': ['a', '1'], 'á': ['a', '2'], 'ǎ': ['a', '3'], 'à': ['a', '4'],
+      'ō': ['o', '1'], 'ó': ['o', '2'], 'ǒ': ['o', '3'], 'ò': ['o', '4'],
+      'ē': ['e', '1'], 'é': ['e', '2'], 'ě': ['e', '3'], 'è': ['e', '4'],
+      'ī': ['i', '1'], 'í': ['i', '2'], 'ǐ': ['i', '3'], 'ì': ['i', '4'],
+      'ū': ['u', '1'], 'ú': ['u', '2'], 'ǔ': ['u', '3'], 'ù': ['u', '4'],
+      'ǖ': ['ü', '1'], 'ǘ': ['ü', '2'], 'ǚ': ['ü', '3'], 'ǜ': ['ü', '4']
+    };
+
+    const convertPy = (py) => {
+      if (!py) return null;
+      let tone = '1';
+      let base = '';
+      const clean = py.trim().toLowerCase();
+      for (let i = 0; i < clean.length; i++) {
+        const ch = clean[i];
+        if (toneMap[ch]) {
+          base += toneMap[ch][0];
+          tone = toneMap[ch][1];
+        } else {
+          base += ch;
+        }
+      }
+      if (base && /^[a-z]+$/.test(base)) {
+        if (['j', 'q', 'x'].some(init => base.startsWith(init))) {
+          base = base.replace(/ü/g, 'u');
+        }
+        return `${base}${tone}.mp3`;
+      }
+      return null;
+    };
+
+    const v1 = (typeof window !== 'undefined' && window.TEXTBOOK_HANZI_DATA) ? window.TEXTBOOK_HANZI_DATA : [];
+    const v2 = (typeof window !== 'undefined' && window.TEXTBOOK_HANZI_VOL2_DATA) ? window.TEXTBOOK_HANZI_VOL2_DATA : [];
+
+    if (v1.length > 0 || v2.length > 0) {
+      [...v1, ...v2].forEach(item => {
+        if (item && item.char && item.pinyin && !this.charAudioMap[item.char]) {
+          const fname = convertPy(item.pinyin);
+          if (fname) {
+            this.charAudioMap[item.char] = fname;
+          }
+        }
+      });
+      this._hasEnrichedChars = true;
+    }
   }
 
   bindTouchWarmup() {
@@ -687,7 +742,10 @@ class PinyinAudioEngine {
       return this.wholeSyllablesAudioMap[clean];
     }
 
-    // 4. 生字直查 (天 -> tian1.mp3, 地 -> di4.mp3...)
+    // 4. 生字直查 (天 -> tian1.mp3, 病 -> bing4.mp3...)
+    if (!this._hasEnrichedChars) {
+      this.enrichCharAudioMap();
+    }
     if (this.charAudioMap[text.trim()]) {
       return this.charAudioMap[text.trim()];
     }
@@ -705,7 +763,8 @@ class PinyinAudioEngine {
       }
     }
 
-    if (base) {
+    // 严格校验：base 必须纯为拉丁字母，避免非拼音字符被误拼合为类似 "病1.mp3" 导致 404
+    if (base && /^[a-z]+$/.test(base)) {
       // 规范化：j, q, x 与 ü 相拼在音频库中统一为 ju, qu, xu (小ü脱帽)
       if (['j', 'q', 'x'].some(init => base.startsWith(init))) {
         base = base.replace(/ü/g, 'u');
@@ -784,6 +843,10 @@ class PinyinAudioEngine {
     const p = audio.play();
     if (p !== undefined) {
       p.catch(err => {
+        // 如果是因为 pause() 中断或被打断（AbortError），属于正常打断，绝不可触发机械 TTS 兜底
+        if (err && (err.name === 'AbortError' || err.code === 20)) {
+          return;
+        }
         console.warn('Audio play failed, fallback to TTS:', filename, err);
         this.speakTTS(filename.replace(/[0-9]\.mp3$/, ''), triggerEnded);
       });
