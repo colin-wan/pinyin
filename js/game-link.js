@@ -66,6 +66,14 @@ class PinyinDecomposeLinkGame {
   }
 
   destroy() {
+    if (this._missionAudioTimer) {
+      clearTimeout(this._missionAudioTimer);
+      this._missionAudioTimer = null;
+    }
+    if (this._advanceTimer) {
+      clearTimeout(this._advanceTimer);
+      this._advanceTimer = null;
+    }
     this.stopChallengeTimer();
     this.cleanupGestureListeners();
     if (typeof window !== 'undefined' && window.removeEventListener) {
@@ -149,12 +157,15 @@ class PinyinDecomposeLinkGame {
   }
 
   /**
-   * 获取当前符合筛选条件的生字数据库
+   * 获取当前符合筛选条件的生字数据库 (内存级单例缓存，彻底消除每题重新映射733个对象导致的 GC 垃圾回收丢帧)
    */
   getAllVocabulary() {
-    const v1 = (window.TEXTBOOK_HANZI_DATA || []).map(item => ({ ...item, book: 1 }));
-    const v2 = (window.TEXTBOOK_HANZI_VOL2_DATA || []).map(item => ({ ...item, book: 2 }));
-    return [...v1, ...v2];
+    if (!this._cachedVocab) {
+      const v1 = (window.TEXTBOOK_HANZI_DATA || []).map(item => ({ ...item, book: 1 }));
+      const v2 = (window.TEXTBOOK_HANZI_VOL2_DATA || []).map(item => ({ ...item, book: 2 }));
+      this._cachedVocab = [...v1, ...v2];
+    }
+    return this._cachedVocab;
   }
 
   getFilteredPool() {
@@ -357,6 +368,30 @@ class PinyinDecomposeLinkGame {
     this.container.innerHTML = `
       <div id="link-game-root" class="w-full bg-gradient-to-b from-amber-50/95 via-orange-50/80 to-yellow-50/95 rounded-3xl p-3 sm:p-5 md:p-6 shadow-xl border-4 ${isChallenge ? 'border-rose-400' : 'border-amber-300'} select-none relative overflow-hidden transition-all duration-300">
         
+        <!-- 专为 iPad 触控屏优化的硬件加速图层与丝滑入场动画样式 -->
+        <style>
+          .link-card {
+            will-change: transform, opacity;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+          }
+          @keyframes linkCardEntrance {
+            0% {
+              opacity: 0.15;
+              transform: scale(0.97) translateZ(0);
+            }
+            100% {
+              opacity: 1;
+              transform: scale(1) translateZ(0);
+            }
+          }
+          .link-card-enter {
+            animation: linkCardEntrance 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          }
+        </style>
+
         <!-- 装饰性漂浮微章 -->
         <div class="absolute -right-8 -top-8 text-8xl opacity-10 pointer-events-none select-none">${isChallenge ? '⚡' : '🔗'}</div>
         <div class="absolute -left-8 -bottom-8 text-8xl opacity-10 pointer-events-none select-none">✨</div>
@@ -518,8 +553,8 @@ class PinyinDecomposeLinkGame {
         <!-- 连线核心舞台容器 (四列 + 覆盖式SVG画布) -->
         <div id="link-stage-wrapper" class="relative w-full rounded-2xl bg-white/60 p-2 sm:p-4 border-2 border-amber-200 shadow-inner overflow-hidden" style="touch-action: none;">
           
-          <!-- SVG 连线画布 (透明覆盖在上层) -->
-          <svg id="link-svg-canvas" class="absolute inset-0 w-full h-full pointer-events-none" style="z-index: 20;">
+          <!-- SVG 连线画布 (透明覆盖在上层，使用 GPU 纯硬件加速图层) -->
+          <svg id="link-svg-canvas" class="absolute inset-0 w-full h-full pointer-events-none" style="z-index: 20; will-change: transform; transform: translateZ(0);">
             <defs>
               <!-- 动态渐变彩虹线 -->
               <linearGradient id="lineGradActive" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -530,17 +565,13 @@ class PinyinDecomposeLinkGame {
                 <stop offset="0%" stop-color="#10b981" />
                 <stop offset="100%" stop-color="#06b6d4" />
               </linearGradient>
-              <filter id="glowEffect" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
             </defs>
 
             <!-- 已锁定的正确连线组 -->
             <g id="svg-completed-group"></g>
 
-            <!-- 正在拖拽的动态手指轨迹线 -->
-            <path id="svg-drag-line" d="" fill="none" stroke="url(#lineGradActive)" stroke-width="5" stroke-linecap="round" stroke-dasharray="8 6" filter="url(#glowEffect)" opacity="0" />
+            <!-- 正在拖拽的动态手指轨迹线 (使用原生渐变与圆角端点，消除 WebKit 滤镜丢帧) -->
+            <path id="svg-drag-line" d="" fill="none" stroke="url(#lineGradActive)" stroke-width="5" stroke-linecap="round" stroke-dasharray="8 6" opacity="0" />
           </svg>
 
           <!-- 四列网格 -->
@@ -676,7 +707,7 @@ class PinyinDecomposeLinkGame {
     if (unitSelect) {
       unitSelect.addEventListener('change', (e) => {
         this.currentUnit = e.target.value;
-        this.startNewQuestion();
+        this.advanceToNextQuestion();
       });
     }
 
@@ -688,11 +719,11 @@ class PinyinDecomposeLinkGame {
       });
     }
 
-    // 换一题 / 跳过
+    // 换一题 / 跳过 (使用平滑过渡，杜绝突兀闪动)
     const skipBtn = this.container.querySelector('#btn-link-skip');
     if (skipBtn) {
       skipBtn.addEventListener('click', () => {
-        this.startNewQuestion();
+        this.advanceToNextQuestion();
       });
     }
 
@@ -1151,7 +1182,10 @@ class PinyinDecomposeLinkGame {
 
     // 清空 SVG 连线
     const g = this.container.querySelector('#svg-completed-group');
-    if (g) g.innerHTML = '';
+    if (g) {
+      g.style.opacity = '1';
+      g.innerHTML = '';
+    }
     const dragLine = this.container.querySelector('#svg-drag-line');
     if (dragLine) {
       dragLine.setAttribute('d', '');
@@ -1168,13 +1202,13 @@ class PinyinDecomposeLinkGame {
       `;
     }
 
-    // 渲染第 1 列卡片 (汉字)
+    // 渲染第 1 列卡片 (汉字 - 硬件加速入场动画)
     const col1Box = this.container.querySelector('#col1-container');
     if (col1Box) {
       col1Box.innerHTML = this.currentQuestion.col1.map(item => {
         const isTarget = item.char === this.currentQuestion.target.char;
         return `
-          <div class="link-card link-col1-card group relative bg-white hover:bg-amber-50/80 active:scale-95 rounded-2xl p-2.5 sm:p-3 border-2 ${isTarget ? 'border-amber-400 shadow-md ring-2 ring-amber-300/60' : 'border-neutral-200 shadow-xs'} transition flex flex-col items-center justify-center cursor-pointer min-h-[96px] sm:min-h-[110px]"
+          <div class="link-card link-card-enter link-col1-card group relative bg-white hover:bg-amber-50/80 active:scale-95 rounded-2xl p-2.5 sm:p-3 border-2 ${isTarget ? 'border-amber-400 shadow-md ring-2 ring-amber-300/60' : 'border-neutral-200 shadow-xs'} transition flex flex-col items-center justify-center cursor-pointer min-h-[96px] sm:min-h-[110px]"
                data-col="1" data-char="${item.char}" data-pinyin="${item.pinyin}" data-target="${isTarget}">
             <!-- 田字格浅底背景框 -->
             <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl border border-red-200 bg-red-50/30 flex items-center justify-center relative shadow-inner mb-1">
@@ -1193,12 +1227,12 @@ class PinyinDecomposeLinkGame {
       }).join('');
     }
 
-    // 渲染第 2 列卡片 (声母)
+    // 渲染第 2 列卡片 (声母 - 硬件加速入场动画)
     const col2Box = this.container.querySelector('#col2-container');
     if (col2Box) {
       col2Box.innerHTML = this.currentQuestion.col2.map(item => {
         return `
-          <div class="link-card link-col2-card group relative bg-white hover:bg-sky-50 active:scale-95 rounded-2xl p-2 sm:p-2.5 border-2 border-neutral-200 shadow-xs transition flex flex-col items-center justify-center cursor-pointer min-h-[68px] sm:min-h-[76px]"
+          <div class="link-card link-card-enter link-col2-card group relative bg-white hover:bg-sky-50 active:scale-95 rounded-2xl p-2 sm:p-2.5 border-2 border-neutral-200 shadow-xs transition flex flex-col items-center justify-center cursor-pointer min-h-[68px] sm:min-h-[76px]"
                data-col="2" data-val="${item.val}" data-correct="${item.isCorrect}">
             <!-- 左侧连线触手圆点 (in) -->
             <span class="link-anchor link-anchor-in absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-sky-300 border-2 border-white shadow-sm flex items-center justify-center transition group-hover:scale-125"></span>
@@ -1219,12 +1253,12 @@ class PinyinDecomposeLinkGame {
       }).join('');
     }
 
-    // 渲染第 3 列卡片 (韵母)
+    // 渲染第 3 列卡片 (韵母 - 硬件加速入场动画)
     const col3Box = this.container.querySelector('#col3-container');
     if (col3Box) {
       col3Box.innerHTML = this.currentQuestion.col3.map(item => {
         return `
-          <div class="link-card link-col3-card group relative bg-white hover:bg-purple-50 active:scale-95 rounded-2xl p-2 sm:p-2.5 border-2 border-neutral-200 shadow-xs transition flex flex-col items-center justify-center cursor-pointer min-h-[68px] sm:min-h-[76px]"
+          <div class="link-card link-card-enter link-col3-card group relative bg-white hover:bg-purple-50 active:scale-95 rounded-2xl p-2 sm:p-2.5 border-2 border-neutral-200 shadow-xs transition flex flex-col items-center justify-center cursor-pointer min-h-[68px] sm:min-h-[76px]"
                data-col="3" data-val="${item.val}" data-correct="${item.isCorrect}">
             <!-- 左侧连线触手圆点 (in) -->
             <span class="link-anchor link-anchor-in absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-purple-300 border-2 border-white shadow-sm flex items-center justify-center transition group-hover:scale-125"></span>
@@ -1245,12 +1279,12 @@ class PinyinDecomposeLinkGame {
       }).join('');
     }
 
-    // 渲染第 4 列卡片 (声调)
+    // 渲染第 4 列卡片 (声调 - 硬件加速入场动画)
     const col4Box = this.container.querySelector('#col4-container');
     if (col4Box) {
       col4Box.innerHTML = this.currentQuestion.col4.map(item => {
         return `
-          <div class="link-card link-col4-card group relative bg-white hover:bg-emerald-50 active:scale-95 rounded-2xl p-1.5 sm:p-2 border-2 border-neutral-200 shadow-xs transition flex items-center justify-between px-3 cursor-pointer min-h-[52px] sm:min-h-[58px]"
+          <div class="link-card link-card-enter link-col4-card group relative bg-white hover:bg-emerald-50 active:scale-95 rounded-2xl p-1.5 sm:p-2 border-2 border-neutral-200 shadow-xs transition flex items-center justify-between px-3 cursor-pointer min-h-[52px] sm:min-h-[58px]"
                data-col="4" data-tone="${item.val}" data-correct="${item.isCorrect}">
             <!-- 左侧连线触手圆点 (in) -->
             <span class="link-anchor link-anchor-in absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-emerald-400 border-2 border-white shadow-sm flex items-center justify-center transition group-hover:scale-125"></span>
@@ -1279,8 +1313,84 @@ class PinyinDecomposeLinkGame {
       window.antiCheat.markQuestionStart(350);
     }
 
-    // 朗读任务提示
-    this.playMissionAudio();
+    // 预热本题相关音频 (声母、韵母、带调韵母、生字)，避免 iPad 移动端首次播放时触发 I/O 阻塞
+    this.prewarmQuestionAudio(this.currentQuestion.target);
+
+    // 异步延时朗读任务提示 (延时 90ms 避开 DOM 回流与渲染管道高峰，消除移动端 Safari 音频硬件竞争)
+    if (this._missionAudioTimer) {
+      clearTimeout(this._missionAudioTimer);
+    }
+    this._missionAudioTimer = setTimeout(() => {
+      this.playMissionAudio();
+    }, 90);
+  }
+
+  /**
+   * 平滑过渡到下一题 (专为 iPad / WebKit 移动端触控优化)
+   * 采用 GPU 硬件加速图层淡出与淡入，消除直接操作 DOM 引起的丢帧与白屏闪烁
+   */
+  advanceToNextQuestion() {
+    if (this._advanceTimer) {
+      clearTimeout(this._advanceTimer);
+      this._advanceTimer = null;
+    }
+
+    const cards = this.container ? this.container.querySelectorAll('.link-card') : [];
+    const svgGroup = this.container ? this.container.querySelector('#svg-completed-group') : null;
+
+    if (svgGroup) {
+      svgGroup.style.transition = 'opacity 0.12s ease-out';
+      svgGroup.style.opacity = '0.2';
+    }
+
+    if (cards.length > 0) {
+      cards.forEach(card => {
+        card.style.transition = 'opacity 0.12s ease-out, transform 0.12s ease-out';
+        card.style.opacity = '0.25';
+        card.style.transform = 'scale(0.97) translateZ(0)';
+      });
+
+      this._advanceTimer = setTimeout(() => {
+        if (svgGroup) {
+          svgGroup.style.opacity = '1';
+        }
+        this.startNewQuestion();
+      }, 120);
+    } else {
+      this.startNewQuestion();
+    }
+  }
+
+  /**
+   * 预热当前题目相关的真人发音音频 (声母、韵母、带调韵母、生字)
+   * 提前写入 AudioCache 与预加载，避免 iPad 移动端在连线完成时触发昂贵的 I/O 或解码锁
+   */
+  prewarmQuestionAudio(target) {
+    if (!target || !window.audioEngine || !window.audioEngine.audioCache) return;
+    const files = [];
+    const charAudio = this.getCharAudioFile(target);
+    if (charAudio) files.push(charAudio);
+
+    if (target.initial) {
+      const initAudio = this.getInitialAudioFile(target.initial);
+      if (initAudio) files.push(initAudio);
+    }
+    if (target.final) {
+      const fin1 = this.getFinalAudioFile(target.final, 1);
+      if (fin1) files.push(fin1);
+      const finTone = this.getFinalAudioFile(target.final, target.tone);
+      if (finTone && finTone !== fin1) files.push(finTone);
+    }
+
+    files.forEach(filename => {
+      if (!window.audioEngine.audioCache.has(filename)) {
+        try {
+          const a = new Audio('audio/' + filename);
+          a.preload = 'auto';
+          window.audioEngine.audioCache.set(filename, a);
+        } catch (e) {}
+      }
+    });
   }
 
   /**
@@ -1514,7 +1624,8 @@ class PinyinDecomposeLinkGame {
   }
 
   /**
-   * 链路全部拼合成功：全流程 100% 播放真人教学拼读阶梯母带 (声母 + 带调韵母 + 合成音节 + 组词)
+   * 链路全部拼合成功：全流程 100% 播放真人教学拼读阶梯母带 (声母 + 带调韵母 + 合成音节)
+   * 采用 onEnded 事件驱动与微停顿缓冲，彻底消除在 iPad 移动端硬编码 2000ms 强行打断音频造成的 CoreAudio 线程阻塞与切题卡顿
    */
   handleChainSuccess() {
     this.isLocked = true;
@@ -1542,7 +1653,78 @@ class PinyinDecomposeLinkGame {
     // 全链条发光脉冲
     this.pulseWholeChain();
 
-    // 100% 真人教学慢速拼读阶梯：声母 + 韵母（带调） + 汉字音节 (严格遵守拼音教学标准，不拼接组词以消除轻声变调朗读错误)
+    // 模式状态与通关判定
+    let isChallengeComplete = false;
+    let elapsedSeconds = 0;
+    let accuracy = 100;
+
+    if (this.gameMode === 'challenge') {
+      const progText = this.container.querySelector('#challenge-progress-text');
+      if (progText) progText.innerText = `${this.correctCount}/${this.challengeTargetQuestions}`;
+      const progBar = this.container.querySelector('#challenge-progress-bar');
+      if (progBar) {
+        const pct = Math.min(100, Math.round((this.correctCount / this.challengeTargetQuestions) * 100));
+        progBar.style.width = `${pct}%`;
+      }
+
+      if (this.correctCount >= this.challengeTargetQuestions) {
+        isChallengeComplete = true;
+        this.stopChallengeTimer();
+        elapsedSeconds = this.challengeTotalSeconds - this.challengeTimeRemaining;
+        const totalTries = this.correctCount + this.challengeMistakes;
+        accuracy = totalTries > 0 ? Math.round((this.correctCount / totalTries) * 100) : 100;
+
+        // 保存战报至本地历史档案
+        this.saveChallengeRecord({
+          targetQuestions: this.challengeTargetQuestions,
+          completedQuestions: this.correctCount,
+          durationMinutes: this.challengeDurationMinutes,
+          elapsedSeconds: elapsedSeconds,
+          mistakes: this.challengeMistakes,
+          accuracy: accuracy,
+          score: this.score,
+          isSuccess: true,
+          bookName: this.currentBook === 'vol1' ? '一年级上册' : (this.currentBook === 'vol2' ? '一年级下册' : '上下册全集')
+        });
+      }
+    }
+
+    const isPracticeComplete = (this.gameMode === 'practice' && this.correctCount >= this.targetCorrect);
+
+    // 统一步骤推进调度器 (保证拼读阶梯语音自然朗读完毕后再切题)
+    let hasFinished = false;
+    let fallbackTimer = null;
+
+    const onStepFinished = () => {
+      if (hasFinished) return;
+      hasFinished = true;
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
+
+      if (isChallengeComplete) {
+        setTimeout(() => {
+          this.showChallengeVictoryModal(elapsedSeconds, accuracy);
+        }, 180);
+        return;
+      }
+
+      if (isPracticeComplete) {
+        setTimeout(() => {
+          this.showVictoryModal();
+        }, 180);
+        return;
+      }
+
+      // 未到通关：平滑过渡到下一题
+      this.advanceToNextQuestion();
+    };
+
+    // 兜底定时器：即使音频故障、静音模式或后台挂起，最迟 3.4 秒也能无缝切题
+    fallbackTimer = setTimeout(onStepFinished, 3400);
+
+    // 100% 真人教学慢速拼读阶梯：声母 + 韵母（带调） + 汉字音节 (严格遵守拼音教学标准，消除轻声变调朗读错误)
     setTimeout(() => {
       if (window.audioEngine) {
         window.audioEngine.playSuccess();
@@ -1554,10 +1736,10 @@ class PinyinDecomposeLinkGame {
         const ladderSeq = [];
         if (initialAudio) {
           ladderSeq.push(initialAudio);
-          ladderSeq.push(110); // 停顿 110ms
+          ladderSeq.push(90); // 90ms 自然呼吸微停顿
           if (toneFinalAudio) {
             ladderSeq.push(toneFinalAudio);
-            ladderSeq.push(160); // 停顿 160ms
+            ladderSeq.push(130); // 130ms 停顿
           }
           if (charAudio) {
             ladderSeq.push(charAudio);
@@ -1574,66 +1756,21 @@ class PinyinDecomposeLinkGame {
         if (ladderSeq.length > 0) {
           setTimeout(() => {
             if (window.audioEngine) {
-              window.audioEngine.playAudioSequence(ladderSeq, null, { playbackRate: 1.05, gapMs: 25 });
+              window.audioEngine.playAudioSequence(ladderSeq, () => {
+                // 拼读阶梯母带自然播完：留出 200ms 舒适微停顿后平滑切题
+                setTimeout(onStepFinished, 200);
+              }, { playbackRate: 1.08, gapMs: 15 });
+            } else {
+              onStepFinished();
             }
-          }, 320);
+          }, 260);
+        } else {
+          setTimeout(onStepFinished, 350);
         }
-      }
-    }, 350);
-
-    // 模式通关校验
-    if (this.gameMode === 'challenge') {
-      // 挑战模式：更新进度条
-      const progText = this.container.querySelector('#challenge-progress-text');
-      if (progText) progText.innerText = `${this.correctCount}/${this.challengeTargetQuestions}`;
-      const progBar = this.container.querySelector('#challenge-progress-bar');
-      if (progBar) {
-        const pct = Math.min(100, Math.round((this.correctCount / this.challengeTargetQuestions) * 100));
-        progBar.style.width = `${pct}%`;
-      }
-
-      // 核心需求：在指定时间（如20分钟）内至少正确完成指定题数（如20题）后，立即停止计时，并记录完成情况
-      if (this.correctCount >= this.challengeTargetQuestions) {
-        this.stopChallengeTimer();
-        const elapsedSeconds = this.challengeTotalSeconds - this.challengeTimeRemaining;
-        const totalTries = this.correctCount + this.challengeMistakes;
-        const accuracy = totalTries > 0 ? Math.round((this.correctCount / totalTries) * 100) : 100;
-
-        // 保存战报至本地历史档案
-        this.saveChallengeRecord({
-          targetQuestions: this.challengeTargetQuestions,
-          completedQuestions: this.correctCount,
-          durationMinutes: this.challengeDurationMinutes,
-          elapsedSeconds: elapsedSeconds,
-          mistakes: this.challengeMistakes,
-          accuracy: accuracy,
-          score: this.score,
-          isSuccess: true,
-          bookName: this.currentBook === 'vol1' ? '一年级上册' : (this.currentBook === 'vol2' ? '一年级下册' : '上下册全集')
-        });
-
-        setTimeout(() => {
-          this.showChallengeVictoryModal(elapsedSeconds, accuracy);
-        }, 2000);
-        return;
       } else {
-        setTimeout(() => {
-          this.startNewQuestion();
-        }, 2000);
-        return;
+        onStepFinished();
       }
-    } else {
-      // 常规练习模式 (5 题通关)
-      if (this.correctCount >= this.targetCorrect) {
-        setTimeout(() => {
-          this.showVictoryModal();
-        }, 2000);
-      } else {
-        setTimeout(() => {
-          this.startNewQuestion();
-        }, 2000);
-      }
-    }
+    }, 280);
   }
 
   pulseWholeChain() {
@@ -1731,7 +1868,7 @@ class PinyinDecomposeLinkGame {
     path.setAttribute('stroke', 'url(#lineGradSuccess)');
     path.setAttribute('stroke-width', '6');
     path.setAttribute('stroke-linecap', 'round');
-    path.setAttribute('filter', 'url(#glowEffect)');
+    path.style.filter = 'drop-shadow(0 2px 4px rgba(16, 185, 129, 0.35))';
     path.classList.add('animate-fadeIn');
 
     g.appendChild(path);
@@ -1757,7 +1894,7 @@ class PinyinDecomposeLinkGame {
       path.setAttribute('stroke', 'url(#lineGradSuccess)');
       path.setAttribute('stroke-width', '6');
       path.setAttribute('stroke-linecap', 'round');
-      path.setAttribute('filter', 'url(#glowEffect)');
+      path.style.filter = 'drop-shadow(0 2px 4px rgba(16, 185, 129, 0.35))';
       g.appendChild(path);
     });
   }
