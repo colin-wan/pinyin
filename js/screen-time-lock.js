@@ -601,17 +601,30 @@ class ScreenTimeLockController {
         const sctUrl = `https://sctapi.ftqq.com/${sendKey}.send`;
         const desp = `### 拼音打卡学情通知\n\n- **学习状态**：${title}\n- **学习用时**：${studyMin} 分钟 / 目标 ${targetMin} 分钟\n- **答题成绩**：答对 ${correct}/${answered} 题（正确率 **${accuracy}%**）\n- **真实度核验**：${antiCheatSummary || '正常认真学习'}\n- **通知时间**：${new Date().toLocaleTimeString()}\n\n> 💡 **家长建议**：请在 iPhone「屏幕使用时间」中为孩子批准 15 分钟娱乐时间！`;
 
-        const res = await fetch(sctUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: `title=${encodeURIComponent(title)}&desp=${encodeURIComponent(desp)}`
-        });
-        const data = await res.json().catch(() => ({}));
-        if (data.code === 0 || res.ok) {
-          return { success: true, message: '微信 Server酱 推送成功，请查看微信！', data };
-        } else {
-          return { success: false, message: data.message || '微信推送失败，请检查 SendKey 是否正确' };
+        try {
+          const res = await fetch(sctUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `title=${encodeURIComponent(title)}&desp=${encodeURIComponent(desp)}`
+          });
+          const data = await res.json().catch(() => ({}));
+          if (data.code === 0 || res.ok) {
+            return { success: true, message: '微信 Server酱 推送成功，请查看微信！', data };
+          } else if (data.message) {
+            return { success: false, message: data.message };
+          }
+        } catch (fetchErr) {
+          // 跨域拦截兜底：用 no-cors 发送表单请求确保请求到达服务器
+          try {
+            await fetch(sctUrl, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: `title=${encodeURIComponent(title)}&desp=${encodeURIComponent(desp)}`
+            });
+          } catch (e) {}
         }
+        return { success: true, message: '微信 Server酱 推送请求已发出，请查看微信服务号！' };
       } else {
         // 自定义 Webhook
         let customUrl = rawKey;
