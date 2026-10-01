@@ -222,10 +222,8 @@ class PinyinDecomposeLinkGame {
     // 随机选择目标汉字
     const target = pool[Math.floor(Math.random() * pool.length)];
 
-    // 第1列：目标汉字 + 2个同册干扰字
-    const otherChars = pool.filter(c => c.char !== target.char);
-    const distractorsCol1 = this.shuffle(otherChars).slice(0, 2);
-    const col1Cards = this.shuffle([target, ...distractorsCol1]);
+    // 第1列：仅展示目标汉字 (汉字出现一个即可，聚焦音节声韵调拆解)
+    const col1Cards = [target];
 
     // 第2列：声母候选 (1正确 + 3干扰)
     const allInitials = ['b', 'p', 'm', 'f', 'd', 't', 'n', 'l', 'g', 'k', 'h', 'j', 'q', 'x', 'zh', 'ch', 'sh', 'r', 'z', 'c', 's', 'y', 'w'];
@@ -582,7 +580,7 @@ class PinyinDecomposeLinkGame {
               <div class="w-full text-center py-1.5 mb-2 rounded-xl bg-amber-200/80 text-amber-950 font-black text-xs sm:text-sm border border-amber-300 shadow-xs">
                 🀄 汉字
               </div>
-              <div id="col1-container" class="w-full space-y-3 flex flex-col justify-around flex-1 py-1"></div>
+              <div id="col1-container" class="w-full flex flex-col justify-center items-center flex-1 py-1"></div>
             </div>
 
             <!-- 第 2 列：【声母】 -->
@@ -1202,24 +1200,23 @@ class PinyinDecomposeLinkGame {
       `;
     }
 
-    // 渲染第 1 列卡片 (汉字 - 硬件加速入场动画)
+    // 渲染第 1 列卡片 (汉字 - 仅出现目标汉字一个，清晰醒目)
     const col1Box = this.container.querySelector('#col1-container');
     if (col1Box) {
       col1Box.innerHTML = this.currentQuestion.col1.map(item => {
-        const isTarget = item.char === this.currentQuestion.target.char;
         return `
-          <div class="link-card link-card-enter link-col1-card group relative bg-white hover:bg-amber-50/80 active:scale-95 rounded-2xl p-2.5 sm:p-3 border-2 ${isTarget ? 'border-amber-400 shadow-md ring-2 ring-amber-300/60' : 'border-neutral-200 shadow-xs'} transition flex flex-col items-center justify-center cursor-pointer min-h-[96px] sm:min-h-[110px]"
-               data-col="1" data-char="${item.char}" data-pinyin="${item.pinyin}" data-target="${isTarget}">
+          <div class="w-full max-w-[130px] link-card link-card-enter link-col1-card group relative bg-white hover:bg-amber-50/80 active:scale-95 rounded-2xl p-3 sm:p-3.5 border-2 border-amber-400 shadow-md ring-2 ring-amber-300/60 transition flex flex-col items-center justify-center cursor-pointer min-h-[105px] sm:min-h-[120px]"
+               data-col="1" data-char="${item.char}" data-pinyin="${item.pinyin}" data-target="true">
             <!-- 田字格浅底背景框 -->
-            <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl border border-red-200 bg-red-50/30 flex items-center justify-center relative shadow-inner mb-1">
-              <span class="text-2xl sm:text-3xl font-black text-neutral-900">${item.char}</span>
-              ${isTarget ? '<span class="absolute -top-2 -right-2 text-xs">🎯</span>' : ''}
+            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl border border-red-200 bg-red-50/30 flex items-center justify-center relative shadow-inner mb-1.5">
+              <span class="text-3xl sm:text-4xl font-black text-neutral-900">${item.char}</span>
+              <span class="absolute -top-2 -right-2 text-xs">🎯</span>
             </div>
-            <div class="text-[11px] text-neutral-500 font-bold truncate max-w-[80px]">
+            <div class="text-xs text-neutral-600 font-extrabold truncate max-w-[90px]">
               ${item.words && item.words[0] ? item.words[0] : ''}
             </div>
             <!-- 右侧连线触手圆点 (out) -->
-            <span class="link-anchor link-anchor-out absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-amber-400 border-2 border-white shadow-sm flex items-center justify-center transition group-hover:scale-125">
+            <span class="link-anchor link-anchor-out absolute -right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-amber-400 border-2 border-white shadow-sm flex items-center justify-center transition group-hover:scale-125">
               <span class="w-1.5 h-1.5 rounded-full bg-amber-900"></span>
             </span>
           </div>
