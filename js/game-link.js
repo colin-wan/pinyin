@@ -1128,12 +1128,13 @@ if (typeof window !== 'undefined') {
 
   // 2. 集成进 App (view-games 与 view-link 顶层导航)
   const hookApp = () => {
-    if (typeof App !== 'undefined' && !App._linkHooked) {
-      App._linkHooked = true;
+    const AppClass = (typeof PinyinApp !== 'undefined') ? PinyinApp : ((typeof window !== 'undefined' && window.PinyinApp) ? window.PinyinApp : (window.app ? window.app.constructor : null));
+    if (AppClass && !AppClass._linkHooked) {
+      AppClass._linkHooked = true;
 
       // 扩展 launchGame
-      const origLaunchGame = App.prototype.launchGame;
-      App.prototype.launchGame = function(gameName) {
+      const origLaunchGame = AppClass.prototype.launchGame;
+      AppClass.prototype.launchGame = function(gameName) {
         if (gameName === 'link') {
           const stage = document.getElementById('active-game-stage');
           if (!stage) return;
@@ -1146,8 +1147,8 @@ if (typeof window !== 'undefined') {
       };
 
       // 扩展 renderGamesHub
-      const origRenderGamesHub = App.prototype.renderGamesHub;
-      App.prototype.renderGamesHub = function() {
+      const origRenderGamesHub = AppClass.prototype.renderGamesHub;
+      AppClass.prototype.renderGamesHub = function() {
         origRenderGamesHub.call(this);
         const hub = document.getElementById('games-content-area');
         if (!hub) return;
@@ -1171,8 +1172,8 @@ if (typeof window !== 'undefined') {
       };
 
       // 扩展 showView 支持 view-link
-      const origShowView = App.prototype.showView;
-      App.prototype.showView = function(viewId) {
+      const origShowView = AppClass.prototype.showView;
+      AppClass.prototype.showView = function(viewId) {
         origShowView.call(this, viewId);
         if (viewId === 'view-link') {
           const container = document.getElementById('link-game-container');
@@ -1184,16 +1185,64 @@ if (typeof window !== 'undefined') {
         }
       };
     }
+
+    // 如果 window.app 实例已经创建，直接增强其实例方法
+    if (typeof window !== 'undefined' && window.app && !window.app._linkInstanceHooked) {
+      window.app._linkInstanceHooked = true;
+      const appInst = window.app;
+      const instShowView = appInst.showView.bind(appInst);
+      appInst.showView = function(viewId) {
+        instShowView(viewId);
+        if (viewId === 'view-link') {
+          const container = document.getElementById('link-game-container');
+          if (container) {
+            container.innerHTML = '';
+            appInst.topLinkGame = new PinyinDecomposeLinkGame('link-game-container');
+            appInst.topLinkGame.render();
+          }
+        }
+      };
+    }
   };
 
   hookHanziHub();
   hookApp();
+
+  // 全局直接点击兜底保障
+  if (typeof document !== 'undefined') {
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.nav-btn[data-view="view-link"]');
+      if (btn) {
+        document.querySelectorAll('.main-view').forEach(v => v.classList.add('hidden'));
+        const linkView = document.getElementById('view-link');
+        if (linkView) linkView.classList.remove('hidden');
+
+        document.querySelectorAll('.nav-btn').forEach(b => {
+          b.classList.remove('bg-amber-400', 'text-amber-950', 'shadow-md');
+          b.classList.add('text-neutral-600', 'hover:bg-amber-100');
+        });
+        btn.classList.add('bg-amber-400', 'text-amber-950', 'shadow-md');
+        btn.classList.remove('text-neutral-600', 'hover:bg-amber-100');
+
+        const container = document.getElementById('link-game-container');
+        if (container) {
+          container.innerHTML = '';
+          const g = new PinyinDecomposeLinkGame('link-game-container');
+          g.render();
+        }
+      }
+    });
+  }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       hookHanziHub();
       hookApp();
     });
+  } else {
+    hookHanziHub();
+    hookApp();
   }
 }
+
 

@@ -160,7 +160,20 @@
   </aside>
 
   <!-- ==========================================
-       主功能导航条 (地图 / 拼读 / 汉字 / 游戏 / 拼音表)
+       测试版专属高亮横幅与直达入口
+       ========================================== -->
+  <div class="bg-gradient-to-r from-rose-500 via-amber-500 to-orange-500 text-white px-4 py-2.5 text-center text-xs sm:text-sm font-black shadow-md flex flex-wrap items-center justify-center gap-2 select-none">
+    <span>🔬 当前处于【测试版环境 index_test.html】</span>
+    <span class="hidden sm:inline">|</span>
+    <span>已加载人教版一年级上下两册 730+ 生字「拼音四重连线」</span>
+    <button onclick="document.querySelector('.nav-btn[data-view=\'view-link\']')?.click()" class="bg-white text-rose-700 px-3.5 py-1 rounded-full font-black text-xs hover:bg-amber-100 transition active:scale-95 shadow-md flex items-center space-x-1 cursor-pointer">
+      <span>👉</span>
+      <span>点击立即体验连线游戏</span>
+    </button>
+  </div>
+
+  <!-- ==========================================
+       主功能导航条 (地图 / 拼读 / 汉字 / 连线 / 游戏 / 拼音表)
        ========================================== -->
   <nav class="bg-amber-100/70 border-b border-amber-200 px-4 py-2 select-none">
     <div class="max-w-4xl mx-auto flex items-center justify-around gap-2 overflow-x-auto scrollbar-none">
@@ -811,10 +824,24 @@
   <script src="js/game-diff.js"></script>
   <script src="js/game-hanzi.js"></script>
   <script src="js/game-whack.js"></script>
-  <script src="js/game-link.js"></script>
   <script src="js/gacha-machine.js"></script>
   <script src="js/screen-time-lock.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/game-link.js"></script>
+
+  <script>
+    // 测试版默认优先打开新版「拼音连线」游戏，打开页面即可直接体验！
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        const linkBtn = document.querySelector('.nav-btn[data-view="view-link"]');
+        if (linkBtn) {
+          linkBtn.click();
+        } else if (window.app && typeof window.app.showView === 'function') {
+          window.app.showView('view-link');
+        }
+      }, 150);
+    });
+  </script>
 
 </body>
 </html>
