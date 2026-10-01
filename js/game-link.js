@@ -602,8 +602,8 @@ class PinyinDecomposeLinkGame {
         return;
       }
 
-      // 重设当前连线
-      this.resetCurrentChain();
+      // 清空之前未完成的连线 (无递归)
+      this.clearChainLines();
       this.connectedCards.col1 = cardEl;
       this.currentStep = 1;
 
@@ -624,8 +624,8 @@ class PinyinDecomposeLinkGame {
   tryConnectTo(targetCardEl, targetCol) {
     if (this.isLocked || !targetCardEl) return;
 
-    // 检查防作弊与盲抢
-    if (window.antiCheat && !window.antiCheat.canAnswer(targetCardEl)) {
+    // 检查防作弊冷冻期
+    if (window.antiCheat && window.antiCheat.isFrozen) {
       return;
     }
 
@@ -810,12 +810,18 @@ class PinyinDecomposeLinkGame {
   }
 
   /**
-   * 重设当前正在连的线
+   * 清理已画的连接线与高亮 (不递归)
    */
-  resetCurrentChain() {
+  clearChainLines() {
     this.completedLines = [];
     const g = this.container.querySelector('#svg-completed-group');
     if (g) g.innerHTML = '';
+
+    const dragLine = this.container.querySelector('#svg-drag-line');
+    if (dragLine) {
+      dragLine.style.opacity = '0';
+      dragLine.setAttribute('d', '');
+    }
 
     // 取消所有卡片选中高亮
     this.container.querySelectorAll('.link-card').forEach(card => {
@@ -828,12 +834,22 @@ class PinyinDecomposeLinkGame {
     });
 
     this.connectedCards = { col1: null, col2: null, col3: null, col4: null };
+  }
+
+  /**
+   * 重设当前正在连的线
+   */
+  resetCurrentChain() {
+    this.clearChainLines();
     this.currentStep = 0;
 
-    // 恢复 Col 1 目标字高亮
+    // 恢复 Col 1 目标字高亮并作为起点
     const targetCard = this.container.querySelector(`.link-col1-card[data-target="true"]`);
     if (targetCard) {
-      this.selectCard(targetCard, 1);
+      this.connectedCards.col1 = targetCard;
+      this.currentStep = 1;
+      targetCard.classList.remove('border-neutral-200');
+      targetCard.classList.add('border-amber-500', 'bg-amber-100/70', 'ring-4', 'ring-amber-300/80', 'scale-[1.02]');
     }
   }
 
@@ -900,11 +916,15 @@ class PinyinDecomposeLinkGame {
   }
 
   getAnchorCoords(cardEl, side, svgEl) {
-    const cardRect = cardEl.getBoundingClientRect();
+    const anchor = side === 'out'
+      ? (cardEl.querySelector('.link-anchor-out') || cardEl)
+      : (cardEl.querySelector('.link-anchor-in') || cardEl);
+    const rect = anchor.getBoundingClientRect();
     const svgRect = svgEl.getBoundingClientRect();
-    const y = (cardRect.top + cardRect.height / 2) - svgRect.top;
-    const x = (side === 'out' ? cardRect.right : cardRect.left) - svgRect.left;
-    return { x, y };
+    return {
+      x: (rect.left + rect.width / 2) - svgRect.left,
+      y: (rect.top + rect.height / 2) - svgRect.top
+    };
   }
 
   computeBezier(x1, y1, x2, y2) {
@@ -923,6 +943,8 @@ class PinyinDecomposeLinkGame {
     const dragLine = this.container.querySelector('#svg-drag-line');
     if (!stage || !svgEl || !dragLine) return;
 
+    let hasMoved = false;
+
     const onPointerDown = (e) => {
       if (this.isLocked) return;
 
@@ -930,13 +952,14 @@ class PinyinDecomposeLinkGame {
       if (!card) return;
 
       const col = parseInt(card.dataset.col, 10);
-      
+      hasMoved = false;
+
       // 允许从当前正在等待下一步的节点拖出 (如：Step 1 时可从 Col 1 拖出，Step 2 时可从 Col 2 拖出)
       if (col === this.currentStep || (col === 1 && this.currentStep === 0)) {
-        if (col === 1) {
+        if (col === 1 && this.currentStep === 0) {
           this.selectCard(card, 1);
         }
-        
+
         const startPos = this.getAnchorCoords(card, 'out', svgEl);
         this.dragState = {
           isDragging: true,
@@ -954,6 +977,7 @@ class PinyinDecomposeLinkGame {
 
     const onPointerMove = (e) => {
       if (!this.dragState.isDragging) return;
+      hasMoved = true;
 
       const svgRect = svgEl.getBoundingClientRect();
       const currentX = e.clientX - svgRect.left;
@@ -962,10 +986,10 @@ class PinyinDecomposeLinkGame {
       const d = this.computeBezier(this.dragState.startX, this.dragState.startY, currentX, currentY);
       dragLine.setAttribute('d', d);
 
-      // 检查当前手指滑入哪张候选卡片
+      // 检查当前手指/鼠标滑入哪张候选卡片
       const elemBelow = document.elementFromPoint(e.clientX, e.clientY);
       const hoveredCard = elemBelow ? elemBelow.closest('.link-card') : null;
-      
+
       this.container.querySelectorAll('.link-card').forEach(c => {
         if (c !== this.connectedCards.col1 && c !== this.connectedCards.col2 && c !== this.connectedCards.col3 && c !== this.connectedCards.col4) {
           c.classList.remove('ring-4', 'ring-sky-400');
@@ -981,33 +1005,35 @@ class PinyinDecomposeLinkGame {
     };
 
     const onPointerUp = (e) => {
-      if (!this.dragState.isDragging) {
-        // 点击模式处理 (Tap Mode)
-        const clickedCard = e.target.closest('.link-card');
-        if (clickedCard) {
-          const col = parseInt(clickedCard.dataset.col, 10);
-          this.tryConnectTo(clickedCard, col);
-        }
-        return;
-      }
-
+      const wasDragging = this.dragState.isDragging;
       this.dragState.isDragging = false;
       dragLine.style.opacity = '0';
       dragLine.setAttribute('d', '');
 
-      // 移除临时高亮
+      // 移除临时悬停高亮
       this.container.querySelectorAll('.link-card').forEach(c => {
         if (c !== this.connectedCards.col1 && c !== this.connectedCards.col2 && c !== this.connectedCards.col3 && c !== this.connectedCards.col4) {
           c.classList.remove('ring-4', 'ring-sky-400');
         }
       });
 
-      // 获取松手处的卡片
+      // 寻找松手或点击位置的卡片
       const elemBelow = document.elementFromPoint(e.clientX, e.clientY);
-      const targetCard = elemBelow ? elemBelow.closest('.link-card') : null;
-      if (targetCard) {
-        const toCol = parseInt(targetCard.dataset.col, 10);
-        this.tryConnectTo(targetCard, toCol);
+      const cardUnderPointer = elemBelow ? elemBelow.closest('.link-card') : null;
+
+      if (wasDragging && hasMoved) {
+        // 拖拽划线释放
+        if (cardUnderPointer) {
+          const toCol = parseInt(cardUnderPointer.dataset.col, 10);
+          this.tryConnectTo(cardUnderPointer, toCol);
+        }
+      } else {
+        // 点击模式 (Tap / Click Mode)
+        const clickedCard = cardUnderPointer || e.target.closest('.link-card');
+        if (clickedCard) {
+          const col = parseInt(clickedCard.dataset.col, 10);
+          this.tryConnectTo(clickedCard, col);
+        }
       }
     };
 
