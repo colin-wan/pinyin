@@ -1333,34 +1333,7 @@ class PinyinDecomposeLinkGame {
   }
 
   /**
-   * 获取词语真人母带录音序列 (如 '生病' -> ['sheng1.mp3', 30, 'bing4.mp3'])
-   */
-  getWordAudioSequence(target) {
-    if (!target || !target.words || !target.words[0]) return [];
-    const word = target.words[0].trim();
-    if (!word || word.length < 2 || word.length > 4) return [];
-
-    const seq = [];
-    for (let i = 0; i < word.length; i++) {
-      const ch = word[i];
-      let chFile = null;
-      if (window.audioEngine && window.audioEngine.charAudioMap && window.audioEngine.charAudioMap[ch]) {
-        chFile = window.audioEngine.charAudioMap[ch];
-      }
-      if (!chFile) {
-        // 如果词语中有字未匹配到母带，则放弃整词拼接，避免残缺
-        return [];
-      }
-      if (seq.length > 0) {
-        seq.push(30); // 字间紧凑连贯停顿 30ms
-      }
-      seq.push(chFile);
-    }
-    return seq;
-  }
-
-  /**
-   * 朗读当前题目语音提示 (100% 真人母带：生字音 + 课本原配词语)
+   * 朗读当前题目语音提示 (100% 真人母带生字标准音，不拼接组词以消除轻声变调朗读错误)
    */
   playMissionAudio() {
     if (!this.currentQuestion || !window.audioEngine) return;
@@ -1368,14 +1341,8 @@ class PinyinDecomposeLinkGame {
     window.audioEngine.stopAllAudio();
 
     const charAudio = this.getCharAudioFile(t);
-    const wordSeq = this.getWordAudioSequence(t);
-
     if (charAudio) {
-      if (wordSeq.length > 0) {
-        window.audioEngine.playAudioSequence([charAudio, 220, ...wordSeq], null, { playbackRate: 1.05 });
-      } else {
-        window.audioEngine.playAudioFile(charAudio);
-      }
+      window.audioEngine.playAudioFile(charAudio);
     }
   }
 
@@ -1575,7 +1542,7 @@ class PinyinDecomposeLinkGame {
     // 全链条发光脉冲
     this.pulseWholeChain();
 
-    // 100% 真人教学慢速拼读阶梯：声母 + 韵母（带调） + 汉字音节 + 课文词语
+    // 100% 真人教学慢速拼读阶梯：声母 + 韵母（带调） + 汉字音节 (严格遵守拼音教学标准，不拼接组词以消除轻声变调朗读错误)
     setTimeout(() => {
       if (window.audioEngine) {
         window.audioEngine.playSuccess();
@@ -1583,7 +1550,6 @@ class PinyinDecomposeLinkGame {
         const initialAudio = t.initial ? this.getInitialAudioFile(t.initial) : null;
         const toneFinalAudio = this.getFinalAudioFile(t.final, t.tone);
         const charAudio = this.getCharAudioFile(t);
-        const wordSeq = this.getWordAudioSequence(t);
 
         const ladderSeq = [];
         if (initialAudio) {
@@ -1603,11 +1569,6 @@ class PinyinDecomposeLinkGame {
           } else if (toneFinalAudio) {
             ladderSeq.push(toneFinalAudio);
           }
-        }
-
-        if (wordSeq && wordSeq.length > 0) {
-          ladderSeq.push(240); // 词语前停顿 240ms
-          ladderSeq.push(...wordSeq);
         }
 
         if (ladderSeq.length > 0) {
@@ -1653,12 +1614,12 @@ class PinyinDecomposeLinkGame {
 
         setTimeout(() => {
           this.showChallengeVictoryModal(elapsedSeconds, accuracy);
-        }, 2800);
+        }, 2000);
         return;
       } else {
         setTimeout(() => {
           this.startNewQuestion();
-        }, 2800);
+        }, 2000);
         return;
       }
     } else {
@@ -1666,11 +1627,11 @@ class PinyinDecomposeLinkGame {
       if (this.correctCount >= this.targetCorrect) {
         setTimeout(() => {
           this.showVictoryModal();
-        }, 2800);
+        }, 2000);
       } else {
         setTimeout(() => {
           this.startNewQuestion();
-        }, 2800);
+        }, 2000);
       }
     }
   }
